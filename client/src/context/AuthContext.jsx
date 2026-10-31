@@ -26,13 +26,18 @@ export function AuthProvider({ children }) {
 
   const login = (credentials) => authenticate('/auth/login', credentials);
   const register = (details) => authenticate('/auth/register', details);
+  async function updatePlannerProfile(profile) {
+    const { data } = await api.put('/auth/planner-profile', profile);
+    setUser(data.data.user);
+    return data.data.user;
+  }
   function logout() {
     localStorage.removeItem('eventsync_token');
     setToken(null);
     setUser(null);
   }
 
-  return <AuthContext.Provider value={{ user, token, loading, login, register, logout }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ user, token, loading, login, register, updatePlannerProfile, logout }}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

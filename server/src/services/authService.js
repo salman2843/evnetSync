@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
+import { eventTypeIds } from '../config/eventTypeCatalog.js';
 
 function createToken(userId) {
   if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET is not configured');
@@ -7,7 +8,47 @@ function createToken(userId) {
 }
 
 function publicUser(user) {
-  return { id: user._id, name: user.name, email: user.email, businessName: user.businessName, createdAt: user.createdAt };
+  return {
+    id: user._id,
+    name: user.name,
+    email: user.email,
+    businessName: user.businessName,
+    plannerProfile: user.plannerProfile || { eventTypeIds: [], onboardingCompletedAt: null, timeZone: '', currency: '' },
+    createdAt: user.createdAt
+  };
+}
+
+export async function savePlannerProfile(userId, profile) {
+  const updates = {};
+  if (profile.eventTypeIds !== undefined) {
+    if (!Array.isArray(profile.eventTypeIds)) {
+      const error = new Error('Event type preferences must be a list');
+      error.statusCode = 400;
+      throw error;
+    }
+    const invalidTypes = profile.eventTypeIds.filter((id) => !eventTypeIds.includes(id));
+    if (invalidTypes.length) {
+      const error = new Error(`Unknown event type: ${invalidTypes[0]}`);
+      error.statusCode = 400;
+      throw error;
+    }
+    updates['plannerProfile.eventTypeIds'] = [...new Set(profile.eventTypeIds)];
+  }
+  if (profile.timeZone !== undefined) updates['plannerProfile.timeZone'] = String(profile.timeZone).trim();
+  if (profile.currency !== undefined) updates['plannerProfile.currency'] = String(profile.currency).trim().toUpperCase();
+
+  // Mark setup complete once; later settings edits do not reset the completion date.
+  if (profile.completeOnboarding === true && !userId.plannerProfile?.onboardingCompletedAt) {
+    updates['plannerProfile.onboardingCompletedAt'] = new Date();
+  }
+
+  const user = await User.findOneAndUpdate({ _id: userId._id }, { $set: updates }, { new: true, runValidators: true });
+  if (!user) {
+    const error = new Error('Planner account not found');
+    error.statusCode = 404;
+    throw error;
+  }
+  return publicUser(user);
 }
 
 export async function registerUser({ name, email, password, businessName }) {

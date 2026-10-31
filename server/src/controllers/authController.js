@@ -1,4 +1,4 @@
-import { getPublicUser, loginUser, registerUser } from '../services/authService.js';
+import { getPublicUser, loginUser, registerUser, savePlannerProfile as saveProfile } from '../services/authService.js';
 
 export async function register(req, res, next) {
   try {
@@ -16,4 +16,11 @@ export async function login(req, res, next) {
 
 export function me(req, res) {
   res.json({ success: true, data: { user: getPublicUser(req.user) }, message: 'Current user loaded' });
+}
+
+export async function savePlannerProfile(req, res, next) {
+  try {
+    const user = await saveProfile(req.user, req.body);
+    res.json({ success: true, data: { user }, message: 'Planner settings saved' });
+  } catch (error) { next(error); }
 }

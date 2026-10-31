@@ -10,7 +10,7 @@ export default function Register() {
   const [submitting, setSubmitting] = useState(false);
   async function handleSubmit(event) {
     event.preventDefault(); setError(''); setSubmitting(true);
-    try { await register(form); navigate('/dashboard'); }
+    try { await register(form); navigate('/onboarding'); }
     catch (err) { setError(err.response?.data?.message || 'Could not create your account. Please try again.'); }
     finally { setSubmitting(false); }
   }

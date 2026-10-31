@@ -4,3 +4,27 @@
 
 body { margin: 0; min-width: 320px; min-height: 100vh; background: #f8fafc; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
 button, input { font: inherit; }
+
+@keyframes panel-enter {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.panel-enter { animation: panel-enter 320ms ease-out both; }
+
+@keyframes backdrop-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modal-enter {
+  from { opacity: 0; transform: translateY(8px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.modal-backdrop { animation: backdrop-enter 180ms ease-out both; }
+.modal-panel { animation: modal-enter 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}

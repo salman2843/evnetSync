@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import authRoutes from './src/routes/authRoutes.js';
+import clientRoutes from './src/routes/clientRoutes.js';
 import { notFound, errorHandler } from './src/middleware/errorHandler.js';
 
 const app = express();
@@ -12,6 +13,7 @@ app.get('/api/health', (_req, res) => {
   res.json({ success: true, data: { status: 'ok' }, message: 'EventSync API is healthy' });
 });
 app.use('/api/auth', authRoutes);
+app.use('/api/clients', clientRoutes);
 app.use(notFound);
 app.use(errorHandler);
 
