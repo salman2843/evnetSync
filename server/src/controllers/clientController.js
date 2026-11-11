@@ -25,8 +25,9 @@ function validateClientFields(fields, creating = false) {
     if (typeof fields.phone !== 'string' || !fields.phone) return 'Client phone is required';
     if (!phonePattern.test(fields.phone)) return 'Enter a valid phone number with country code, such as +919876543210';
   }
-  if (fields.email !== undefined && fields.email && !emailPattern.test(fields.email)) {
-    return 'Enter a valid email address';
+  if (creating || fields.email !== undefined) {
+    if (typeof fields.email !== 'string' || !fields.email) return 'Client email is required';
+    if (!emailPattern.test(fields.email)) return 'Enter a valid email address';
   }
   if (fields.status !== undefined && !clientStatuses.includes(fields.status)) {
     return 'Choose a valid client status';

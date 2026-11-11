@@ -11,10 +11,10 @@ const clientSchema = new mongoose.Schema({
   phone: { type: String, required: true, trim: true, match: [phonePattern, 'Enter a valid phone number with country code'] },
   email: {
     type: String,
+    required: [true, 'Client email is required'],
     trim: true,
     lowercase: true,
-    default: '',
-    validate: { validator: (value) => !value || emailPattern.test(value), message: 'Enter a valid email address' }
+    validate: { validator: (value) => emailPattern.test(value), message: 'Enter a valid email address' }
   },
   address: { type: String, trim: true, default: '' },
   notes: { type: String, trim: true, default: '' },
