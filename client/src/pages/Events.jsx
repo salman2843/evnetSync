@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import {
   ArrowLeft,
+  ArrowUpDown,
   CalendarDays,
   CheckCircle2,
+  Check,
   Circle,
   DollarSign,
   Filter,
@@ -75,6 +77,189 @@ const money = (value, currency = "INR") =>
   }).format(Number(value) || 0)
 const displayDate = (value) =>
   value ? new Date(value).toLocaleDateString() : "Date not set"
+
+// ---- Column sort / filter options -------------------------------------------------
+const TEXT_SORTS = [
+  { id: "az", label: "A → Z (ascending)" },
+  { id: "za", label: "Z → A (descending)" },
+  { id: "latest", label: "Latest added" },
+  { id: "oldest", label: "Oldest added" },
+]
+const DATE_SORTS = [
+  { id: "nearest", label: "Nearest first (priority)" },
+  { id: "upcoming", label: "Upcoming only" },
+  { id: "past", label: "Past (gone) only" },
+  { id: "latest", label: "Latest first" },
+  { id: "oldest", label: "Oldest first" },
+]
+// header label -> { column key, options }
+const COLUMN_FILTERS = {
+  "Surprise For": { column: "surprise", options: TEXT_SORTS },
+  Client: { column: "client", options: TEXT_SORTS },
+  Date: { column: "date", options: DATE_SORTS },
+}
+
+const startOfToday = () => {
+  const d = new Date()
+  d.setHours(0, 0, 0, 0)
+  return d.getTime()
+}
+const eventTime = (event) =>
+  event.startAt ? new Date(event.startAt).getTime() : null
+// "Added" time: use createdAt when the API sends it, otherwise the timestamp embedded in a Mongo ObjectId.
+const createdTime = (event) =>
+  event.createdAt
+    ? new Date(event.createdAt).getTime()
+    : (parseInt(String(event._id).slice(0, 8), 16) || 0) * 1000
+const byText = (getter, dir) => (a, b) => {
+  const x = (getter(a) || "").trim()
+  const y = (getter(b) || "").trim()
+  if (!x && !y) return 0
+  if (!x) return 1 // empty values always go last
+  if (!y) return -1
+  return dir * x.localeCompare(y, undefined, { sensitivity: "base" })
+}
+const byTime = (getter, dir) => (a, b) => {
+  const x = getter(a)
+  const y = getter(b)
+  if (x === null && y === null) return 0
+  if (x === null) return 1 // events without a date always go last
+  if (y === null) return -1
+  return dir * (x - y)
+}
+
+function applyColumnSort(list, { column, option }) {
+  if (!column || !option) return list
+  const items = [...list]
+
+  if (column === "date") {
+    const today = startOfToday()
+    const upcoming = (e) => eventTime(e) !== null && eventTime(e) >= today
+    const past = (e) => eventTime(e) !== null && eventTime(e) < today
+    if (option === "upcoming")
+      return items.filter(upcoming).sort(byTime(eventTime, 1))
+    if (option === "past") return items.filter(past).sort(byTime(eventTime, -1))
+    if (option === "latest") return items.sort(byTime(eventTime, -1))
+    if (option === "oldest") return items.sort(byTime(eventTime, 1))
+    // nearest: upcoming events soonest-first, then past events (most recent first), then undated
+    return [
+      ...items.filter(upcoming).sort(byTime(eventTime, 1)),
+      ...items.filter(past).sort(byTime(eventTime, -1)),
+      ...items.filter((e) => eventTime(e) === null),
+    ]
+  }
+
+  const getter =
+    column === "client" ? (e) => e.clientId?.name : (e) => e.surpriseFor
+  if (option === "az") return items.sort(byText(getter, 1))
+  if (option === "za") return items.sort(byText(getter, -1))
+  if (option === "latest") return items.sort(byTime(createdTime, -1))
+  if (option === "oldest") return items.sort(byTime(createdTime, 1))
+  return items
+}
+
+// Small sort/filter menu that sits right beside a column heading.
+// The menu is position: fixed so the table's overflow container cannot clip it.
+function HeaderFilter({ label, options, value, onChange }) {
+  const [pos, setPos] = useState(null)
+  const buttonRef = useRef(null)
+  const menuRef = useRef(null)
+  const open = Boolean(pos)
+
+  useEffect(() => {
+    if (!open) return undefined
+    const close = () => setPos(null)
+    const onDown = (e) => {
+      if (
+        !menuRef.current?.contains(e.target) &&
+        !buttonRef.current?.contains(e.target)
+      )
+        close()
+    }
+    const onKey = (e) => {
+      if (e.key === "Escape") close()
+    }
+    document.addEventListener("mousedown", onDown)
+    document.addEventListener("keydown", onKey)
+    window.addEventListener("resize", close)
+    window.addEventListener("scroll", close, true)
+    return () => {
+      document.removeEventListener("mousedown", onDown)
+      document.removeEventListener("keydown", onKey)
+      window.removeEventListener("resize", close)
+      window.removeEventListener("scroll", close, true)
+    }
+  }, [open])
+
+  function toggle() {
+    if (open) {
+      setPos(null)
+      return
+    }
+    const rect = buttonRef.current.getBoundingClientRect()
+    setPos({
+      top: rect.bottom + 6,
+      left: Math.max(8, Math.min(rect.left, window.innerWidth - 232)),
+    })
+  }
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <span>{label}</span>
+      <button
+        ref={buttonRef}
+        type="button"
+        onClick={toggle}
+        aria-label={`Sort or filter by ${label}`}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        className={`rounded p-1 hover:bg-blue-100 hover:text-blue-700 ${value ? "bg-blue-100 text-blue-700" : "text-slate-400"}`}
+      >
+        <ArrowUpDown size={13} />
+      </button>
+      {open && (
+        <div
+          ref={menuRef}
+          role="menu"
+          style={{ top: pos.top, left: pos.left }}
+          className="fixed z-50 w-56 rounded-xl border border-slate-100 bg-white p-1.5 text-left shadow-lg"
+        >
+          {options.map((option) => {
+            const active = option.id === value
+            return (
+              <button
+                key={option.id}
+                type="button"
+                role="menuitemradio"
+                aria-checked={active}
+                onClick={() => {
+                  onChange(active ? "" : option.id)
+                  setPos(null)
+                }}
+                className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-medium ${active ? "bg-blue-50 text-blue-700" : "text-slate-700 hover:bg-slate-50"}`}
+              >
+                {option.label}
+                {active && <Check size={14} />}
+              </button>
+            )
+          })}
+          {value && (
+            <button
+              type="button"
+              onClick={() => {
+                onChange("")
+                setPos(null)
+              }}
+              className="mt-1 w-full rounded-lg border-t border-slate-100 px-3 py-2 text-left text-xs font-semibold text-slate-500 hover:text-red-600"
+            >
+              Clear sorting
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
 
 function dateValue(value) {
   if (!value) return ""
@@ -162,6 +347,7 @@ export default function Events() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("")
+  const [columnSort, setColumnSort] = useState({ column: "", option: "" }) // one active column sort at a time
 
   // silent = refresh in the background without flashing the "Loading events…" state
   async function loadData(silent = false) {
@@ -338,7 +524,7 @@ export default function Events() {
     }
   }
 
-  const filteredEvents = events.filter((event) => {
+  const matchedEvents = events.filter((event) => {
     const clientName = event.clientId?.name || ""
     const haystack =
       `${event.title} ${event.eventTypeId} ${EVENT_TYPE_LABELS[event.eventTypeId] || ""} ${event.subEventTypeId || ""} ${clientName} ${event.surpriseFor || ""}`.toLowerCase()
@@ -347,6 +533,7 @@ export default function Events() {
       haystack.includes(search.toLowerCase().trim())
     )
   })
+  const filteredEvents = applyColumnSort(matchedEvents, columnSort)
 
   const completedCount = tasks.filter(
     (task) => task.status === "completed",
@@ -615,14 +802,36 @@ export default function Events() {
                         "Budget",
                         "Status",
                         "Actions",
-                      ].map((heading) => (
-                        <th
-                          key={heading}
-                          className="border-b border-slate-100 px-5 py-4 text-xs font-semibold text-blue-900"
-                        >
-                          {heading}
-                        </th>
-                      ))}
+                      ].map((heading) => {
+                        const config = COLUMN_FILTERS[heading]
+                        return (
+                          <th
+                            key={heading}
+                            className="border-b border-slate-100 px-5 py-4 text-xs font-semibold text-blue-900"
+                          >
+                            {config ? (
+                              <HeaderFilter
+                                label={heading}
+                                options={config.options}
+                                value={
+                                  columnSort.column === config.column
+                                    ? columnSort.option
+                                    : ""
+                                }
+                                onChange={(option) =>
+                                  setColumnSort(
+                                    option
+                                      ? { column: config.column, option }
+                                      : { column: "", option: "" },
+                                  )
+                                }
+                              />
+                            ) : (
+                              heading
+                            )}
+                          </th>
+                        )
+                      })}
                     </tr>
                   </thead>
                   <tbody>
