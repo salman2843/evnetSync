@@ -11,7 +11,7 @@ import Modal from './Modal.jsx';
 const navigation = [
   { label: 'Dashboard', to: '/dashboard', Icon: LayoutDashboard },
   { label: 'Clients', to: '/clients', Icon: UsersRound },
-  { label: 'Events', Icon: CalendarDays },
+  { label: 'Events', to: '/events', Icon: CalendarDays },
   { label: 'Vendors', Icon: Store },
   { label: 'Action Center', Icon: ClipboardList },
 ];

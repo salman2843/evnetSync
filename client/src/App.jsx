@@ -8,6 +8,7 @@ import Register from './pages/Register.jsx';
 import Clients from './pages/Clients.jsx';
 import Onboarding from './pages/Onboarding.jsx';
 import Settings from './pages/Settings.jsx';
+import Events from './pages/Events.jsx';
 
 function HomeRedirect() {
   const { user, loading } = useAuth();
@@ -26,6 +27,7 @@ export default function App() {
       <Route element={<AppLayout />}>
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/clients" element={<Clients />} />
+        <Route path="/events" element={<Events />} />
         <Route path="/settings" element={<Settings />} />
       </Route>
     </Route>
