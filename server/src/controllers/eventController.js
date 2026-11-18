@@ -4,6 +4,7 @@ import Event from '../models/Event.js';
 import EventVendor from '../models/EventVendor.js';
 import Task from '../models/Task.js';
 import { eventTypeGroups, festivalSubtypeIds } from '../config/eventTypeCatalog.js';
+import { duplicateEventForUser } from '../services/eventService.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { sendCreated, sendError, sendSuccess } from '../utils/apiResponse.js';
 import {
@@ -270,6 +271,11 @@ export const updateEvent = asyncHandler(async (req, res) => {
     { new: true, runValidators: true }
   ).populate('clientId', 'name');
   return sendSuccess(res, { event }, 'Event updated successfully');
+});
+
+export const duplicateEvent = asyncHandler(async (req, res) => {
+  const { event, copiedTasks } = await duplicateEventForUser(req.user._id, req.params.id, req.body);
+  return sendCreated(res, { event, copiedTasks }, 'Event duplicated successfully');
 });
 
 export const deleteEvent = asyncHandler(async (req, res) => {

@@ -16,7 +16,7 @@ The backend is being completed first; the React client is kept working but will 
 | Event vendor assignments | Done |
 | Action Center (rule engine) | Done |
 | Dashboard summary | Done |
-| Exports, duplicate event, global search | Planned |
+| Duplicate event, CSV exports, global search | Done |
 | Frontend redesign | Deferred |
 
 ## Stack
@@ -43,8 +43,8 @@ Event Sync/
       controllers/        HTTP in/out only
       middleware/         auth, errorHandler, rateLimit
       models/             User, Client, Event, Task, Vendor, EventVendor, ActionItem
-      routes/             auth, client, event, profile, vendor, meta, action, dashboard
-      services/           authService, clientService, profileService, storageService, vendorService, assignmentService, actionEngine, actionService, dashboardService
+      routes/             auth, client, event, profile, vendor, meta, action, dashboard, export, search
+      services/           authService, clientService, profileService, storageService, vendorService, assignmentService, actionEngine, actionService, dashboardService, eventService, csvService, exportService, searchService
       utils/              validation, apiResponse, asyncHandler, httpError
     tests/                API tests with an in-memory MongoDB
 ```
@@ -143,6 +143,7 @@ Vendor categories are stable IDs from `server/src/config/vendorCatalog.js` (`cat
 | `GET` | `/api/events/:id` | Event plus its tasks (undated tasks last) |
 | `PUT` | `/api/events/:id` | Update an event |
 | `DELETE` | `/api/events/:id` | Delete an event and its tasks |
+| `POST` | `/api/events/:id/duplicate` | Copy an event and its task list |
 | `POST` | `/api/events/:id/tasks` | Add a task |
 | `PUT` | `/api/events/:id/tasks/:taskId` | Update title, status, priority, or due date |
 | `DELETE` | `/api/events/:id/tasks/:taskId` | Delete a task |
@@ -178,12 +179,30 @@ Rules in `server/src/services/actionEngine.js` (pure functions, no database acce
 - Overspent event budgets
 - Upcoming events with no tasks
 
+### Duplicate event
+
+`POST /api/events/:id/duplicate` copies an event and its tasks. Optional body fields are `title`, `startAt`, and `clientId`; the copy starts as `inquiry`, `budget.spent` resets to `0`, and task due dates shift by the same number of days as the event. Copied tasks reopen as `open`. Vendor assignments and actions are not copied because they are decisions rather than data.
+
+### Exports
+
+| Method | Route | Description |
+| --- | --- | --- |
+| `GET` | `/api/exports/clients.csv` | Planner's clients |
+| `GET` | `/api/exports/events.csv` | Events with client and budget columns |
+| `GET` | `/api/exports/vendors.csv` | Vendor directory |
+| `GET` | `/api/exports/actions.csv` | Action Center items |
+
+CSV downloads are planner-scoped, capped at 5000 rows, and sent with `Content-Disposition: attachment` plus a UTF-8 BOM so Excel opens them correctly. They are the only routes that do not use the `{ success, data, message }` JSON envelope.
+
+### Global search
+
+`GET /api/search?q=` searches clients, events, vendors, actions, and tasks in one request. Each group returns at most 5 matches with a `title` and `subtitle`; the response also includes `query`, `total`, and `results`. An empty query returns `400`. Searches are case-insensitive, planner-scoped, and regular-expression characters are treated as plain text.
+
 ### Dashboard
 
 | Method | Route | Description |
 | --- | --- | --- |
 | `GET` | `/api/dashboard/summary` | One planner-scoped summary for the home screen |
-
 The response contains:
 
 - `events`: `total`, `upcoming` (active events starting today or later), counts per status, and the next 5 upcoming events with client details.
