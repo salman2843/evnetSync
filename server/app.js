@@ -8,6 +8,7 @@ import { config } from './src/config/env.js';
 import authRoutes from './src/routes/authRoutes.js';
 import actionRoutes from './src/routes/actionRoutes.js';
 import clientRoutes from './src/routes/clientRoutes.js';
+import dashboardRoutes from './src/routes/dashboardRoutes.js';
 import eventRoutes from './src/routes/eventRoutes.js';
 import metaRoutes from './src/routes/metaRoutes.js';
 import profileRoutes from './src/routes/profileRoutes.js';
@@ -40,6 +41,7 @@ app.get('/api/health', (_req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/actions', actionRoutes);
 app.use('/api/clients', clientRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/meta', metaRoutes);
 app.use('/api/profile', profileRoutes);

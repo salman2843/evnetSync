@@ -15,7 +15,8 @@ The backend is being completed first; the React client is kept working but will 
 | Vendors | Done |
 | Event vendor assignments | Done |
 | Action Center (rule engine) | Done |
-| Dashboard summary, exports, duplicate event, global search | Planned |
+| Dashboard summary | Done |
+| Exports, duplicate event, global search | Planned |
 | Frontend redesign | Deferred |
 
 ## Stack
@@ -42,8 +43,8 @@ Event Sync/
       controllers/        HTTP in/out only
       middleware/         auth, errorHandler, rateLimit
       models/             User, Client, Event, Task, Vendor, EventVendor, ActionItem
-      routes/             auth, client, event, profile, vendor, meta, action
-      services/           authService, clientService, profileService, storageService, vendorService, assignmentService, actionEngine, actionService
+      routes/             auth, client, event, profile, vendor, meta, action, dashboard
+      services/           authService, clientService, profileService, storageService, vendorService, assignmentService, actionEngine, actionService, dashboardService
       utils/              validation, apiResponse, asyncHandler, httpError
     tests/                API tests with an in-memory MongoDB
 ```
@@ -176,6 +177,23 @@ Rules in `server/src/services/actionEngine.js` (pure functions, no database acce
 - Vendors still considering/contacted within 14 days of the event
 - Overspent event budgets
 - Upcoming events with no tasks
+
+### Dashboard
+
+| Method | Route | Description |
+| --- | --- | --- |
+| `GET` | `/api/dashboard/summary` | One planner-scoped summary for the home screen |
+
+The response contains:
+
+- `events`: `total`, `upcoming` (active events starting today or later), counts per status, and the next 5 upcoming events with client details.
+- `actions`: `open`, `overdue`, `dueToday`, `done`, `dismissed`, and the next 5 open actions (same ordering as the Action Center).
+- `budget.byCurrency`: planned, spent, and remaining totals per currency. Cancelled events are excluded.
+- `vendors`: vendor count plus assignment counts per status.
+- `clients.total`.
+- `generatedAt`.
+
+All counts are filtered by the logged-in planner, so two planners never see each other's numbers.
 
 ### System
 
