@@ -14,6 +14,7 @@ import {
   TASK_STATUSES,
   isValidId
 } from '../utils/validation.js';
+import { paginationMeta, parsePagination } from '../utils/pagination.js';
 
 const eventTypeIds = new Set(eventTypeGroups.flatMap((group) => group.types.map((type) => type.id)));
 const festivalTypes = new Set(festivalSubtypeIds);
@@ -106,10 +107,17 @@ export const listEvents = asyncHandler(async (req, res) => {
   const filter = { userId: req.user._id };
   if (req.query.status) filter.status = req.query.status;
 
-  const events = await Event.find(filter)
+  const page = parsePagination(req.query);
+
+  const eventsQuery = Event.find(filter)
     .populate('clientId', 'name')
-    .sort({ startAt: 1, createdAt: -1 })
-    .lean();
+    .sort({ startAt: 1, createdAt: -1 });
+  if (page) eventsQuery.skip(page.skip).limit(page.limit);
+
+  const [events, total] = await Promise.all([
+    eventsQuery.lean(),
+    page ? Event.countDocuments(filter) : null
+  ]);
 
   const counts = await Task.aggregate([
     { $match: { userId: req.user._id, eventId: { $in: events.map((event) => event._id) } } },
@@ -120,7 +128,11 @@ export const listEvents = asyncHandler(async (req, res) => {
     event.taskSummary = countByEvent.get(String(event._id)) || { total: 0, completed: 0 };
   });
 
-  return sendSuccess(res, { events }, 'Events loaded successfully');
+  return sendSuccess(
+    res,
+    { events, ...(page ? { pagination: paginationMeta(total, page) } : {}) },
+    'Events loaded successfully'
+  );
 });
 
 export const getEvent = asyncHandler(async (req, res) => {

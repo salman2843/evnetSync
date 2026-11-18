@@ -9,8 +9,8 @@ import {
 } from '../services/vendorService.js';
 
 export const listVendors = asyncHandler(async (req, res) => {
-  const vendors = await listVendorsForUser(req.user._id, req.query);
-  return sendSuccess(res, { vendors }, 'Vendors loaded successfully');
+  const { vendors, pagination } = await listVendorsForUser(req.user._id, req.query);
+  return sendSuccess(res, { vendors, ...(pagination ? { pagination } : {}) }, 'Vendors loaded successfully');
 });
 
 export const getVendor = asyncHandler(async (req, res) => {

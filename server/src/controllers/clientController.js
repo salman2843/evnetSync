@@ -10,6 +10,7 @@ import {
   isValidId,
   normalizePhone
 } from '../utils/validation.js';
+import { paginationMeta, parsePagination } from '../utils/pagination.js';
 
 const editableFields = ['name', 'phone', 'email', 'address', 'notes', 'status'];
 
@@ -66,8 +67,21 @@ export const listClients = asyncHandler(async (req, res) => {
   }
   if (req.query.status) filter.status = req.query.status;
 
-  const clients = await Client.find(filter).sort({ createdAt: -1 });
-  return sendSuccess(res, { clients }, 'Clients loaded successfully');
+  const page = parsePagination(req.query);
+
+  const clientsQuery = Client.find(filter).sort({ createdAt: -1 });
+  if (page) clientsQuery.skip(page.skip).limit(page.limit);
+
+  const [clients, total] = await Promise.all([
+    clientsQuery,
+    page ? Client.countDocuments(filter) : null
+  ]);
+
+  return sendSuccess(
+    res,
+    { clients, ...(page ? { pagination: paginationMeta(total, page) } : {}) },
+    'Clients loaded successfully'
+  );
 });
 
 export const getClient = asyncHandler(async (req, res) => {

@@ -2,6 +2,7 @@ import Vendor from '../models/Vendor.js';
 import EventVendor from '../models/EventVendor.js';
 import { vendorCategoryIds } from '../config/vendorCatalog.js';
 import httpError from '../utils/httpError.js';
+import { paginationMeta, parsePagination } from '../utils/pagination.js';
 import {
   EMAIL_PATTERN,
   PHONE_PATTERN,
@@ -74,7 +75,16 @@ export async function listVendorsForUser(userId, query = {}) {
     filter.serviceCategoryIds = query.category;
   }
 
-  return Vendor.find(filter).sort({ name: 1 });
+  const page = parsePagination(query);
+  const vendorsQuery = Vendor.find(filter).sort({ name: 1 });
+  if (page) vendorsQuery.skip(page.skip).limit(page.limit);
+
+  const [vendors, total] = await Promise.all([
+    vendorsQuery,
+    page ? Vendor.countDocuments(filter) : null
+  ]);
+
+  return { vendors, pagination: page ? paginationMeta(total, page) : null };
 }
 
 export async function getVendorForUser(userId, vendorId) {

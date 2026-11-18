@@ -17,6 +17,7 @@ The backend is being completed first; the React client is kept working but will 
 | Action Center (rule engine) | Done |
 | Dashboard summary | Done |
 | Duplicate event, CSV exports, global search | Done |
+| Backend ops (seed data + API reference) | Done |
 | Frontend redesign | Deferred |
 
 ## Stack
@@ -45,7 +46,8 @@ Event Sync/
       models/             User, Client, Event, Task, Vendor, EventVendor, ActionItem
       routes/             auth, client, event, profile, vendor, meta, action, dashboard, export, search
       services/           authService, clientService, profileService, storageService, vendorService, assignmentService, actionEngine, actionService, dashboardService, eventService, csvService, exportService, searchService
-      utils/              validation, apiResponse, asyncHandler, httpError
+      utils/              validation, apiResponse, asyncHandler, httpError, pagination
+    scripts/              seed.js (demo data)
     tests/                API tests with an in-memory MongoDB
 ```
 
@@ -59,6 +61,7 @@ cd server
 npm install
 cp .env.example .env        # then fill in the values
 npm run dev                 # http://localhost:5000
+npm run seed                # optional demo planner and sample data
 
 # 2. Frontend (optional for now)
 cd ../client
@@ -77,6 +80,8 @@ npm run dev                 # http://localhost:5173
 | `CLIENT_URL` | No | Allowed CORS origin(s), comma-separated, defaults to `http://localhost:5173` |
 | `NODE_ENV` | No | `development` or `production` |
 | `UPLOAD_DIR` | No | Folder for uploaded files, defaults to `uploads` |
+| `SEED_EMAIL` | No | Demo planner email for `npm run seed`, defaults to `demo@eventsync.test` |
+| `SEED_PASSWORD` | No | Demo planner password; when omitted a random one is printed once |
 
 `server/.env` is gitignored. Keep `.env.example` up to date and never commit real secrets.
 
@@ -84,6 +89,8 @@ npm run dev                 # http://localhost:5173
 
 Every route except register and login requires `Authorization: Bearer <token>`.
 All responses use `{ success, data, message }`.
+
+The full request and response reference for every endpoint is in [`server/API.md`](server/API.md).
 
 ### Auth
 

@@ -7,6 +7,7 @@ import ActionItem from '../src/models/ActionItem.js';
 import Client from '../src/models/Client.js';
 import Event from '../src/models/Event.js';
 import Task from '../src/models/Task.js';
+import Vendor from '../src/models/Vendor.js';
 import { toCsv } from '../src/services/csvService.js';
 import { clearDb, startDb, stopDb } from './helpers/db.js';
 import { createPlanner } from './helpers/planner.js';
@@ -244,5 +245,87 @@ describe('extras: duplicate, exports, search', () => {
       const res = await request(app).get('/api/search').query({ q: 'ravi' });
       assert.equal(res.status, 401);
     });
+  });
+});
+
+describe('list pagination', () => {
+  let token;
+  let userId;
+  let client;
+
+  before(startDb);
+  after(stopDb);
+  beforeEach(async () => {
+    await clearDb();
+    const planner = await createPlanner();
+    token = planner.token;
+    userId = planner.user._id;
+    client = await Client.create({ userId, name: 'Ravi Kumar', phone: '+919876543210' });
+  });
+
+  test('paginates clients and reports the total', async () => {
+    for (let index = 1; index <= 5; index += 1) {
+      await Client.create({ userId, name: `Client ${index}`, phone: `+9198765432${10 + index}` });
+    }
+
+    const res = await request(app).get('/api/clients?limit=2&page=2').set(auth(token));
+
+    assert.equal(res.status, 200);
+    assert.equal(res.body.data.clients.length, 2);
+    assert.deepEqual(res.body.data.pagination, { page: 2, limit: 2, total: 6, pages: 3 });
+  });
+
+  test('paginates events while keeping task summaries', async () => {
+    for (let index = 1; index <= 5; index += 1) {
+      await Event.create({
+        userId,
+        clientId: client._id,
+        title: `Event ${index}`,
+        eventTypeId: 'wedding',
+        startAt: daysFromNow(index)
+      });
+    }
+
+    const res = await request(app).get('/api/events?limit=2&page=3').set(auth(token));
+
+    assert.equal(res.status, 200);
+    assert.equal(res.body.data.events.length, 1);
+    assert.equal(res.body.data.events[0].title, 'Event 5');
+    assert.deepEqual(res.body.data.events[0].taskSummary, { total: 0, completed: 0 });
+    assert.deepEqual(res.body.data.pagination, { page: 3, limit: 2, total: 5, pages: 3 });
+  });
+
+  test('paginates vendors', async () => {
+    await Vendor.create([
+      { userId, name: 'Alpha Caterers' },
+      { userId, name: 'Beta Decor' },
+      { userId, name: 'Gamma Studio' }
+    ]);
+
+    const res = await request(app).get('/api/vendors?limit=2&page=1').set(auth(token));
+
+    assert.equal(res.status, 200);
+    assert.equal(res.body.data.vendors.length, 2);
+    assert.deepEqual(res.body.data.pagination, { page: 1, limit: 2, total: 3, pages: 2 });
+  });
+
+  test('returns every row when no pagination is requested', async () => {
+    await Client.create([
+      { userId, name: 'Client One', phone: '+919876543220' },
+      { userId, name: 'Client Two', phone: '+919876543221' }
+    ]);
+
+    const res = await request(app).get('/api/clients').set(auth(token));
+
+    assert.equal(res.status, 200);
+    assert.equal(res.body.data.clients.length, 3);
+    assert.equal(res.body.data.pagination, undefined);
+  });
+
+  test('rejects invalid page and limit values', async () => {
+    for (const query of ['?page=0', '?limit=0', '?limit=101', '?page=abc']) {
+      const res = await request(app).get(`/api/clients${query}`).set(auth(token));
+      assert.equal(res.status, 400, query);
+    }
   });
 });
