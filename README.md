@@ -12,7 +12,7 @@ The backend is being completed first; the React client is kept working but will 
 | Profile editing, password change, business logo upload | Done |
 | Clients | Done |
 | Events + per-event tasks | Done |
-| Vendors | Planned |
+| Vendors | Done |
 | Event vendor assignments | Planned |
 | Action Center (rule engine) | Planned |
 | Dashboard summary, exports, duplicate event, global search | Planned |
@@ -41,8 +41,8 @@ Event Sync/
       config/             env.js (dotenv + required vars), db.js, eventTypeCatalog.js
       controllers/        HTTP in/out only
       middleware/         auth, errorHandler, rateLimit
-      models/             User, Client, Event, Task
-      routes/             auth, client, event
+      models/             User, Client, Event, Task, Vendor
+      routes/             auth, client, event, profile, vendor, meta
       services/           authService, clientService (business rules)
       utils/              validation, apiResponse, asyncHandler, httpError
     tests/                API tests with an in-memory MongoDB
@@ -109,6 +109,7 @@ Logos must be PNG, JPEG, or WebP, at most 2 MB. Files are stored under `server/u
 | Method | Route | Description |
 | --- | --- | --- |
 | `GET` | `/api/meta/event-types` | Event-type groups and festival sub-types from the server catalog |
+| `GET` | `/api/meta/vendor-categories` | Vendor service categories from the server catalog |
 
 ### Clients
 
@@ -119,6 +120,18 @@ Logos must be PNG, JPEG, or WebP, at most 2 MB. Files are stored under `server/u
 | `GET` | `/api/clients/:id` | One client |
 | `PUT` | `/api/clients/:id` | Update a client |
 | `DELETE` | `/api/clients/:id` | Delete a client; returns `409` if events still use it |
+
+### Vendors
+
+| Method | Route | Description |
+| --- | --- | --- |
+| `GET` | `/api/vendors?search=&category=` | List the planner's private vendor directory |
+| `POST` | `/api/vendors` | Add a vendor (name required; contact details optional) |
+| `GET` | `/api/vendors/:id` | One vendor |
+| `PUT` | `/api/vendors/:id` | Update a vendor |
+| `DELETE` | `/api/vendors/:id` | Delete a vendor |
+
+Vendor categories are stable IDs from `server/src/config/vendorCatalog.js` (`catering`, `photography`, `venue`, and so on). Vendors are private to the planner who created them.
 
 ### Events and tasks
 
@@ -144,6 +157,7 @@ Validation rules worth knowing:
 - Phone numbers are stored as E.164 (`+` followed by 8-15 digits).
 - Client email is optional; if present it must be a valid address.
 - Event types come from `server/src/config/eventTypeCatalog.js`. Festival sub-types only apply to `festival` events.
+- Vendor categories come from `server/src/config/vendorCatalog.js`; unknown IDs are rejected.
 - Planner passwords must be at least 8 characters.
 
 ## Tests

@@ -10,6 +10,7 @@ import clientRoutes from './src/routes/clientRoutes.js';
 import eventRoutes from './src/routes/eventRoutes.js';
 import metaRoutes from './src/routes/metaRoutes.js';
 import profileRoutes from './src/routes/profileRoutes.js';
+import vendorRoutes from './src/routes/vendorRoutes.js';
 import { uploadRoot } from './src/services/storageService.js';
 import { notFound, errorHandler } from './src/middleware/errorHandler.js';
 
@@ -40,6 +41,7 @@ app.use('/api/clients', clientRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/meta', metaRoutes);
 app.use('/api/profile', profileRoutes);
+app.use('/api/vendors', vendorRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
