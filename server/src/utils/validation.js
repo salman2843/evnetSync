@@ -10,6 +10,7 @@ export const EVENT_STATUSES = ['inquiry', 'planning', 'confirmed', 'completed', 
 export const TASK_STATUSES = ['open', 'completed'];
 export const TASK_PRIORITIES = ['low', 'normal', 'high'];
 export const ASSIGNMENT_STATUSES = ['considering', 'contacted', 'booked', 'declined'];
+export const ACTION_STATUSES = ['open', 'done', 'dismissed'];
 export const CURRENCIES = ['INR', 'USD', 'EUR', 'GBP'];
 
 export function normalizePhone(value) {

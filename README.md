@@ -14,7 +14,7 @@ The backend is being completed first; the React client is kept working but will 
 | Events + per-event tasks | Done |
 | Vendors | Done |
 | Event vendor assignments | Done |
-| Action Center (rule engine) | Planned |
+| Action Center (rule engine) | Done |
 | Dashboard summary, exports, duplicate event, global search | Planned |
 | Frontend redesign | Deferred |
 
@@ -41,9 +41,9 @@ Event Sync/
       config/             env.js (dotenv + required vars), db.js, eventTypeCatalog.js
       controllers/        HTTP in/out only
       middleware/         auth, errorHandler, rateLimit
-      models/             User, Client, Event, Task, Vendor, EventVendor
-      routes/             auth, client, event, profile, vendor, meta
-      services/           authService, clientService, profileService, storageService, vendorService, assignmentService
+      models/             User, Client, Event, Task, Vendor, EventVendor, ActionItem
+      routes/             auth, client, event, profile, vendor, meta, action
+      services/           authService, clientService, profileService, storageService, vendorService, assignmentService, actionEngine, actionService
       utils/              validation, apiResponse, asyncHandler, httpError
     tests/                API tests with an in-memory MongoDB
 ```
@@ -156,6 +156,26 @@ Vendor categories are stable IDs from `server/src/config/vendorCatalog.js` (`cat
 | `DELETE` | `/api/events/:id/vendors/:assignmentId` | Remove the vendor from the event |
 
 An assignment status is `considering`, `contacted`, `booked`, or `declined`. A vendor can appear only once per event, a vendor in use cannot be deleted, and deleting an event removes its assignments.
+
+### Action Center
+
+| Method | Route | Description |
+| --- | --- | --- |
+| `GET` | `/api/actions?status=&eventId=&due=` | List actions; defaults to `open`, `status=all` returns everything |
+| `POST` | `/api/actions` | Create a manual action |
+| `PATCH` | `/api/actions/:id` | Update status, title, description, priority, or due date |
+| `POST` | `/api/actions/regenerate` | Re-run the rule engine and upsert suggestions |
+
+`due` accepts `overdue`, `today`, or `week`. Regeneration is idempotent: each suggestion has a stable `dedupeKey`, so running it repeatedly never creates duplicates and never reopens an action the planner completed or dismissed. Open rule actions whose condition no longer exists are removed.
+
+Rules in `server/src/services/actionEngine.js` (pure functions, no database access):
+
+- Overdue or soon-due tasks
+- Events starting within 30 days that are still inquiry/planning
+- Upcoming events with no vendors assigned
+- Vendors still considering/contacted within 14 days of the event
+- Overspent event budgets
+- Upcoming events with no tasks
 
 ### System
 

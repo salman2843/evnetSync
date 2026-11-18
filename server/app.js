@@ -6,6 +6,7 @@ import helmet from 'helmet';
 import mongoose from 'mongoose';
 import { config } from './src/config/env.js';
 import authRoutes from './src/routes/authRoutes.js';
+import actionRoutes from './src/routes/actionRoutes.js';
 import clientRoutes from './src/routes/clientRoutes.js';
 import eventRoutes from './src/routes/eventRoutes.js';
 import metaRoutes from './src/routes/metaRoutes.js';
@@ -37,6 +38,7 @@ app.get('/api/health', (_req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
+app.use('/api/actions', actionRoutes);
 app.use('/api/clients', clientRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/meta', metaRoutes);

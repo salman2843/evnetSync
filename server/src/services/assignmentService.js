@@ -1,3 +1,4 @@
+import ActionItem from '../models/ActionItem.js';
 import Event from '../models/Event.js';
 import EventVendor from '../models/EventVendor.js';
 import Vendor from '../models/Vendor.js';
@@ -109,5 +110,8 @@ export async function deleteEventVendor(userId, eventId, assignmentId) {
 
   const assignment = await EventVendor.findOneAndDelete({ _id: assignmentId, eventId, userId });
   if (!assignment) throw httpError('Assignment not found', 404);
+
+  // The vendor-confirmation suggestion no longer applies.
+  await ActionItem.deleteOne({ userId, dedupeKey: `event-vendor:${assignment._id}` });
   return assignment;
 }

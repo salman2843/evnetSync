@@ -1,3 +1,4 @@
+import ActionItem from '../models/ActionItem.js';
 import Client from '../models/Client.js';
 import Event from '../models/Event.js';
 import EventVendor from '../models/EventVendor.js';
@@ -212,6 +213,8 @@ export const deleteTask = asyncHandler(async (req, res) => {
     userId: req.user._id
   });
   if (!task) return sendError(res, 'Task not found', 404);
+  // Remove the rule action that pointed at this task.
+  await ActionItem.deleteOne({ userId: req.user._id, dedupeKey: `task:${task._id}` });
   return sendSuccess(res, { task }, 'Task deleted successfully');
 });
 
@@ -277,5 +280,6 @@ export const deleteEvent = asyncHandler(async (req, res) => {
 
   await Task.deleteMany({ eventId: event._id, userId: req.user._id });
   await EventVendor.deleteMany({ eventId: event._id, userId: req.user._id });
+  await ActionItem.deleteMany({ eventId: event._id, userId: req.user._id });
   return sendSuccess(res, { event }, 'Event deleted successfully');
 });
