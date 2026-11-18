@@ -1,11 +1,11 @@
 # EventSync client
 
 The planner-facing React app. This folder is being rebuilt from scratch on the
-`frontend-v2` branch. The old client is preserved in git history on `main`.
+`frontend-v2` branch. The old client is preserved in git history.
 
-**Current state:** login screen only. `/register` and `/dashboard` are temporary
-holding screens so the login flow can be walked end to end. Every other route
-redirects home.
+**Current state:** login, registration and the dashboard are built. `/clients`,
+`/vendors`, `/events`, `/events/:id`, `/actions` and `/settings` render a holding
+screen inside the app shell. Unknown routes redirect home.
 
 ## Stack
 
@@ -80,8 +80,10 @@ here first and document it in this table.
 | --- | --- |
 | Display / h1 | `font-display text-[2.1rem] sm:text-[2.4rem] leading-[1.08] tracking-[-0.02em]` |
 | Section heading | `font-display text-[2rem] leading-[1.1] tracking-[-0.02em]` |
+| Stat number | `font-display text-[2rem] leading-none tracking-[-0.02em]` |
 | Body | `text-[0.95rem] leading-relaxed` |
 | Label | `text-[0.8rem] font-medium text-ink-soft` |
+| Card label | `text-[0.68rem] font-medium uppercase tracking-[0.14em] text-muted` |
 | Meta / hint | `text-sm text-muted` |
 
 Fraunces (display) and Inter (UI) load from Google Fonts in `index.html` with
@@ -99,16 +101,38 @@ Fraunces (display) and Inter (UI) load from Google Fonts in `index.html` with
 
 ```text
 client/src/
-  api/            axios.js (instance + token + 401), auth.js
-  components/     BrandMark, FullScreenLoader, ProtectedRoute
-  components/ui/  Button, TextField (shared primitives; add new UI here)
-  context/        AuthContext.jsx (token, user, login, logout)
-  lib/            apiError.js (Axios error -> human sentence)
-  pages/          Login, ComingSoon
-  App.jsx         routes
+  api/            axios.js (instance + token + 401), auth.js, dashboard.js, actions.js
+  components/
+    auth/         AuthPanel (shared dark panel for login and register)
+    dashboard/    StatCard, NextEvents, ActionFeed, BudgetPanel, PipelinePanel,
+                  DashboardSkeleton, EmptyWorkspace
+    layout/       AppShell (sidebar, mobile header and tab bar)
+    ui/           Button, TextField, PasswordField, Badge, Panel, Skeleton
+    BrandMark, FullScreenLoader, ProtectedRoute
+  context/        AuthContext.jsx (token, user, login, register, logout)
+  hooks/          useDashboardSummary.js
+  lib/            apiError.js, format.js (dates/money/due words), labels.js (enums),
+                  usePageTitle.js
+  pages/          Login, Register, Dashboard, ComingSoon
+  App.jsx         routes and the guarded-page helper
   index.css       Tailwind layers, focus, selection, motion
   main.jsx        React root
 ```
+
+## App shell
+
+`<AppShell>` is the signed-in frame. It renders:
+
+- a fixed 256px sidebar at `lg` and up: brand, five primary links, Settings,
+  then the planner's initials, name, business name and sign out;
+- a sticky top bar below `lg` with the brand, Settings and sign out;
+- a fixed bottom tab bar below `lg` (Dashboard, Actions, Clients, Vendors,
+  Events) with 56px targets and safe-area padding;
+- the page container: `max-w-[76rem]`, `pb-28` on mobile so the tab bar never
+  covers content.
+
+`NAV_ITEMS` in AppShell is the single list behind the sidebar and the tabs. Add a
+destination there and in `App.jsx`; do not hardcode nav markup in a page.
 
 ## Conventions
 
@@ -125,9 +149,11 @@ client/src/
 ### Auth
 
 - Token key: `eventsync_token` (do not rename; it is the agreed contract).
-- `useAuth()` exposes `{ user, token, loading, login, logout }`.
+- `useAuth()` exposes `{ user, token, loading, login, register, logout }`.
+- Registering stores the returned token and signs the planner in immediately.
 - A stored token is exchanged for a user with `GET /auth/me` on first load.
-- Wrap private routes in `<ProtectedRoute>`.
+- Wrap private routes in `<ProtectedRoute>` and inside `<AppShell>`; use the
+  `privatePage(element)` helper in `App.jsx`.
 - `AuthContext` clears the token when `/auth/me` fails.
 
 ### Screens
@@ -142,6 +168,11 @@ Every async screen ships these states, built with tokens:
 
 No `window.confirm` or `window.alert`. Use a styled dialog later, or inline
 confirmation for low-risk actions.
+
+Confirmations that follow an action (a refresh, a completed task) appear in the
+dashboard's fixed `role="status"` toast, never in a blocking alert. Errors that
+belong to one field stay under that field: a duplicate email on `/register` is
+shown on the email input, not in the form banner.
 
 ### Forms
 
@@ -166,40 +197,42 @@ confirmation for low-risk actions.
 - Mobile first. Check 390, 768, 1024 and 1440.
 - Layout changes are structural (columns collapse, tables become cards), not
   fluid type.
-- The brand panel on `/login` is `hidden` below `lg`; the form must stand alone.
+- The brand panel on `/login` and `/register` is `hidden` below `lg`; the form
+  must stand alone.
+- The sidebar gives way to the bottom tab bar below `lg`. Keep primary
+  destinations reachable in both.
 
 ## Routes and endpoints
 
 | Route | Status | Backend |
 | --- | --- | --- |
 | `/login` | Built | `POST /auth/login` |
-| `/register` | Holding screen | `POST /auth/register` (later) |
-| `/dashboard` | Holding screen | `GET /dashboard/summary` (later) |
+| `/register` | Built | `POST /auth/register` |
+| `/dashboard` | Built | `GET /dashboard/summary`, `POST /actions/regenerate`, `PATCH /actions/:id` |
+| `/actions` | Holding screen | `GET /actions` |
+| `/clients` | Holding screen | `GET /clients` |
+| `/vendors` | Holding screen | `GET /vendors` |
+| `/events` | Holding screen | `GET /events` |
+| `/events/:id` | Holding screen | `GET /events/:id` |
+| `/settings` | Holding screen | `GET /profile` |
 
-Planned next, all backed by `server/API.md`:
-
-| Route | Endpoints |
-| --- | --- |
-| `/dashboard` | `GET /dashboard/summary`, `GET /actions?due=` |
-| `/clients` | `/clients`, `/exports/clients.csv`, `/meta/...` |
-| `/vendors` | `/vendors`, `/meta/vendor-categories`, `/exports/vendors.csv` |
-| `/events` | `/events`, `/exports/events.csv` |
-| `/events/:id` | `/events/:id`, `/tasks`, `/vendors`, `/actions?eventId=` |
-| `/actions` | `/actions`, `/actions/regenerate` |
-| `/settings` | `/profile`, `/profile/password`, `/profile/logo`, `/auth/planner-profile` |
-| top bar | `GET /search?q=` |
+Full endpoint list: `server/API.md`.
 
 ## How to add a page
 
 1. Create `src/pages/YourPage.jsx`; keep it under ~250 lines and split sections
    into `src/components/<area>/`.
 2. Add the API module in `src/api/` (never fetch inside the page).
-3. Add the route in `App.jsx`; wrap it in `<ProtectedRoute>` if it needs a user.
-4. Use `Button`, `TextField` and existing tokens. Add new primitives to
-   `components/ui/` instead of one-off styles.
-5. Build loading, empty, error and success states.
-6. Check 390 / 768 / 1440 and keyboard focus.
-7. Update this README (route table and any new token or primitive).
+3. Add the route in `App.jsx` with `privatePage(<YourPage />)`.
+4. Use `Button`, `TextField`, `PasswordField`, `Panel`, `Badge` and existing
+   tokens. Add new primitives to `components/ui/` instead of one-off styles.
+5. Build loading, empty, error and success states. Reuse `getErrorMessage` and
+   the shape of `useDashboardSummary` (data, loading, error, reload).
+6. Format dates, money and due dates with `lib/format.js`; take enum labels and
+   badge tones from `lib/labels.js` so a status looks the same everywhere.
+7. Set the tab title with `usePageTitle('Screen name')`.
+8. Check 390 / 768 / 1440 and keyboard focus.
+9. Update this README (route table and any new token or primitive).
 
 ## Definition of done
 

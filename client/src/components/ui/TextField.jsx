@@ -1,14 +1,16 @@
 import { forwardRef, useId } from 'react';
 
 // Labelled text input with an optional trailing control (for example the
-// password reveal button) and an inline error message.
+// password reveal button), a hint, and an inline error message.
 const TextField = forwardRef(function TextField(
-  { label, error, id, className = '', trailing, ...props },
+  { label, error, hint, id, className = '', trailing, ...props },
   ref
 ) {
   const autoId = useId();
   const fieldId = id || autoId;
   const errorId = `${fieldId}-error`;
+  const hintId = `${fieldId}-hint`;
+  const describedBy = error ? errorId : hint ? hintId : undefined;
 
   return (
     <div className={className}>
@@ -24,7 +26,7 @@ const TextField = forwardRef(function TextField(
           ref={ref}
           id={fieldId}
           aria-invalid={error ? 'true' : undefined}
-          aria-describedby={error ? errorId : undefined}
+          aria-describedby={describedBy}
           className={[
             'h-11 w-full rounded-field border bg-surface px-3.5 text-[0.95rem] text-ink',
             'shadow-field placeholder:text-muted',
@@ -45,6 +47,10 @@ const TextField = forwardRef(function TextField(
       {error ? (
         <p id={errorId} className="mt-1.5 text-[0.8rem] leading-snug text-danger">
           {error}
+        </p>
+      ) : hint ? (
+        <p id={hintId} className="mt-1.5 text-[0.8rem] leading-snug text-muted">
+          {hint}
         </p>
       ) : null}
     </div>

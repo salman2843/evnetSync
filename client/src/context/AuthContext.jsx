@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { TOKEN_KEY } from '../api/axios.js';
-import { loginRequest, meRequest } from '../api/auth.js';
+import { loginRequest, meRequest, registerRequest } from '../api/auth.js';
 
 const AuthContext = createContext(null);
 
@@ -47,13 +47,22 @@ export function AuthProvider({ children }) {
     return data.user;
   }
 
+  // Registering signs the planner in, exactly like a login.
+  async function register(details) {
+    const data = await registerRequest(details);
+    localStorage.setItem(TOKEN_KEY, data.token);
+    setToken(data.token);
+    setUser(data.user);
+    return data.user;
+  }
+
   function logout() {
     localStorage.removeItem(TOKEN_KEY);
     setToken(null);
     setUser(null);
   }
 
-  const value = { user, token, loading, login, logout };
+  const value = { user, token, loading, login, register, logout };
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
