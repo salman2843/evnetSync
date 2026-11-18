@@ -10,6 +10,21 @@
 - Keep code simple and commented so a first-year MCA student can explain it in a viva.
 - Work on one feature at a time. After each task, tell me what files changed and how to test it.
 
+## Backend design rules
+
+- Load environment variables only through server/src/config/env.js. Import it first in app.js; never call dotenv.config() anywhere else.
+- Shared validation patterns, statuses, and currency lists live in server/src/utils/validation.js. Models and controllers must both import them instead of redefining regexes or enums.
+- Controllers stay thin: read the request, call a service or model, return a response. Multi-step business rules belong in server/src/services/.
+- Wrap every async controller with asyncHandler from server/src/utils/asyncHandler.js and return responses with sendSuccess / sendCreated / sendError from server/src/utils/apiResponse.js.
+- Throw errors with httpError(message, statusCode) and let the central error handler format them. Never send a raw Mongoose error.
+- Every planner-owned collection stores a required userId, and every query filters by req.user._id. Verify ownership of related records (client, vendor, event) before writing relationships.
+- A planner cannot be deleted while owned records exist; return 409 with a helpful count instead of orphaning data.
+- Phone numbers are normalized to E.164 (+ and 8-15 digits) before saving. Email is optional for clients but validated when present.
+- An event always requires a start date. Drop all lead-capture-without-date flows.
+- Uploaded files go through server/src/services/storageService.js. Store only relative paths in MongoDB, validate file type by extension, MIME type, and magic bytes, and cap uploads at 2 MB.
+- Add tests for every new endpoint in server/tests/ using node:test + supertest + mongodb-memory-server. `npm test` must pass before a phase is called done.
+- New collections and routes are announced in server/API.md (tracked) and in README.md. The /docs/ folder is local-only and gitignored.
+
 ## Token efficiency rules
 
 - If graphify-out/GRAPH_REPORT.md exists, read it before searching raw files.

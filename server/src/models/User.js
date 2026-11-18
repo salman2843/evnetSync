@@ -1,12 +1,13 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import { eventTypeIds } from '../config/eventTypeCatalog.js';
+import { CURRENCIES } from '../utils/validation.js';
 
 const plannerProfileSchema = new mongoose.Schema({
   eventTypeIds: { type: [{ type: String, enum: eventTypeIds }], default: [] },
   onboardingCompletedAt: { type: Date, default: null },
   timeZone: { type: String, trim: true, default: '' },
-  currency: { type: String, trim: true, uppercase: true, default: '' }
+  currency: { type: String, trim: true, uppercase: true, default: '', enum: [...CURRENCIES, ''] }
 }, { _id: false });
 
 const userSchema = new mongoose.Schema({

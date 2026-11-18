@@ -35,3 +35,15 @@ export const eventTypeGroups = [
 ];
 
 export const eventTypeIds = eventTypeGroups.flatMap((group) => group.types.map((type) => type.id));
+
+// Sub-types shown only when eventTypeId === 'festival'.
+export const festivalSubtypes = [
+  { id: 'diwali', label: 'Diwali' },
+  { id: 'holi', label: 'Holi' },
+  { id: 'navratri', label: 'Navratri' },
+  { id: 'ganesh_chaturthi', label: 'Ganesh Chaturthi' },
+  { id: 'durga_puja', label: 'Durga Puja' },
+  { id: 'onam', label: 'Onam' }
+];
+
+export const festivalSubtypeIds = festivalSubtypes.map((subtype) => subtype.id);

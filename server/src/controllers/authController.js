@@ -1,26 +1,22 @@
 import { getPublicUser, loginUser, registerUser, savePlannerProfile as saveProfile } from '../services/authService.js';
+import asyncHandler from '../utils/asyncHandler.js';
+import { sendCreated, sendSuccess } from '../utils/apiResponse.js';
 
-export async function register(req, res, next) {
-  try {
-    const data = await registerUser(req.body);
-    res.status(201).json({ success: true, data, message: 'Account created successfully' });
-  } catch (error) { next(error); }
-}
+export const register = asyncHandler(async (req, res) => {
+  const data = await registerUser(req.body);
+  return sendCreated(res, data, 'Account created successfully');
+});
 
-export async function login(req, res, next) {
-  try {
-    const data = await loginUser(req.body);
-    res.json({ success: true, data, message: 'Logged in successfully' });
-  } catch (error) { next(error); }
-}
+export const login = asyncHandler(async (req, res) => {
+  const data = await loginUser(req.body);
+  return sendSuccess(res, data, 'Logged in successfully');
+});
 
 export function me(req, res) {
-  res.json({ success: true, data: { user: getPublicUser(req.user) }, message: 'Current user loaded' });
+  return sendSuccess(res, { user: getPublicUser(req.user) }, 'Current user loaded');
 }
 
-export async function savePlannerProfile(req, res, next) {
-  try {
-    const user = await saveProfile(req.user, req.body);
-    res.json({ success: true, data: { user }, message: 'Planner settings saved' });
-  } catch (error) { next(error); }
-}
+export const savePlannerProfile = asyncHandler(async (req, res) => {
+  const user = await saveProfile(req.user, req.body);
+  return sendSuccess(res, { user }, 'Planner settings saved');
+});

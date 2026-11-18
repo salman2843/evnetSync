@@ -1,10 +1,21 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import { eventTypeIds } from '../config/eventTypeCatalog.js';
+import { config } from '../config/env.js';
+import httpError from '../utils/httpError.js';
+import {
+  EMAIL_PATTERN,
+  isNonEmptyString,
+  isSupportedCurrency,
+  isValidTimeZone,
+  normalizeEmail
+} from '../utils/validation.js';
+
+export const PASSWORD_MIN_LENGTH = 8;
 
 function createToken(userId) {
-  if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET is not configured');
-  return jwt.sign({ id: userId }, process.env.JWT_SECRET, { expiresIn: '7d' });
+  if (!config.jwtSecret) throw new Error('JWT_SECRET is not configured');
+  return jwt.sign({ id: userId }, config.jwtSecret, { expiresIn: '7d' });
 }
 
 function publicUser(user) {
@@ -18,65 +29,70 @@ function publicUser(user) {
   };
 }
 
-export async function savePlannerProfile(userId, profile) {
+// `user` is the authenticated User document from the auth middleware.
+export async function savePlannerProfile(user, profile) {
   const updates = {};
+
   if (profile.eventTypeIds !== undefined) {
-    if (!Array.isArray(profile.eventTypeIds)) {
-      const error = new Error('Event type preferences must be a list');
-      error.statusCode = 400;
-      throw error;
-    }
+    if (!Array.isArray(profile.eventTypeIds)) throw httpError('Event type preferences must be a list');
     const invalidTypes = profile.eventTypeIds.filter((id) => !eventTypeIds.includes(id));
-    if (invalidTypes.length) {
-      const error = new Error(`Unknown event type: ${invalidTypes[0]}`);
-      error.statusCode = 400;
-      throw error;
-    }
+    if (invalidTypes.length) throw httpError(`Unknown event type: ${invalidTypes[0]}`);
     updates['plannerProfile.eventTypeIds'] = [...new Set(profile.eventTypeIds)];
   }
-  if (profile.timeZone !== undefined) updates['plannerProfile.timeZone'] = String(profile.timeZone).trim();
-  if (profile.currency !== undefined) updates['plannerProfile.currency'] = String(profile.currency).trim().toUpperCase();
+
+  if (profile.timeZone !== undefined) {
+    const timeZone = String(profile.timeZone).trim();
+    if (timeZone && !isValidTimeZone(timeZone)) throw httpError('Choose a valid time zone, such as Asia/Kolkata');
+    updates['plannerProfile.timeZone'] = timeZone;
+  }
+
+  if (profile.currency !== undefined) {
+    const currency = String(profile.currency).trim().toUpperCase();
+    if (currency && !isSupportedCurrency(currency)) throw httpError('Choose a supported currency');
+    updates['plannerProfile.currency'] = currency;
+  }
 
   // Mark setup complete once; later settings edits do not reset the completion date.
-  if (profile.completeOnboarding === true && !userId.plannerProfile?.onboardingCompletedAt) {
+  if (profile.completeOnboarding === true && !user.plannerProfile?.onboardingCompletedAt) {
     updates['plannerProfile.onboardingCompletedAt'] = new Date();
   }
 
-  const user = await User.findOneAndUpdate({ _id: userId._id }, { $set: updates }, { new: true, runValidators: true });
-  if (!user) {
-    const error = new Error('Planner account not found');
-    error.statusCode = 404;
-    throw error;
-  }
-  return publicUser(user);
+  const updated = await User.findByIdAndUpdate(user._id, { $set: updates }, { new: true, runValidators: true });
+  if (!updated) throw httpError('Planner account not found', 404);
+  return publicUser(updated);
 }
 
 export async function registerUser({ name, email, password, businessName }) {
-  if (!name || !email || !password) {
-    const error = new Error('Name, email, and password are required');
-    error.statusCode = 400;
-    throw error;
+  if (!isNonEmptyString(name) || !isNonEmptyString(email) || !isNonEmptyString(password)) {
+    throw httpError('Name, email, and password are required');
   }
-  if (await User.findOne({ email: email.toLowerCase().trim() })) {
-    const error = new Error('An account with this email already exists');
-    error.statusCode = 409;
-    throw error;
+
+  const cleanName = name.trim();
+  const cleanEmail = normalizeEmail(email);
+
+  if (!EMAIL_PATTERN.test(cleanEmail)) throw httpError('Enter a valid email address');
+  if (password.length < PASSWORD_MIN_LENGTH) {
+    throw httpError(`Password must be at least ${PASSWORD_MIN_LENGTH} characters`);
   }
-  const user = await User.create({ name, email, password, businessName });
+  if (await User.exists({ email: cleanEmail })) throw httpError('An account with this email already exists', 409);
+
+  const user = await User.create({
+    name: cleanName,
+    email: cleanEmail,
+    password,
+    businessName: typeof businessName === 'string' ? businessName.trim() : ''
+  });
   return { user: publicUser(user), token: createToken(user._id) };
 }
 
 export async function loginUser({ email, password }) {
-  if (!email || !password) {
-    const error = new Error('Email and password are required');
-    error.statusCode = 400;
-    throw error;
+  if (!isNonEmptyString(email) || !isNonEmptyString(password)) {
+    throw httpError('Email and password are required');
   }
-  const user = await User.findOne({ email: email.toLowerCase().trim() }).select('+password');
+
+  const user = await User.findOne({ email: normalizeEmail(email) }).select('+password');
   if (!user || !(await user.comparePassword(password))) {
-    const error = new Error('Invalid email or password');
-    error.statusCode = 401;
-    throw error;
+    throw httpError('Invalid email or password', 401);
   }
   return { user: publicUser(user), token: createToken(user._id) };
 }

@@ -1,6 +1,5 @@
 import mongoose from 'mongoose';
-
-const eventStatuses = ['inquiry', 'planning', 'confirmed', 'completed', 'cancelled'];
+import { CURRENCIES, EVENT_STATUSES } from '../utils/validation.js';
 
 const eventSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -9,12 +8,12 @@ const eventSchema = new mongoose.Schema({
   eventTypeId: { type: String, required: true, trim: true },
   subEventTypeId: { type: String, trim: true, default: '' },
   surpriseFor: { type: String, trim: true, default: '', maxlength: 120 },
-  status: { type: String, enum: eventStatuses, default: 'inquiry' },
+  status: { type: String, enum: EVENT_STATUSES, default: 'inquiry' },
   startAt: { type: Date, required: true },
   budget: {
     amount: { type: Number, min: 0, default: 0 },
     spent: { type: Number, min: 0, default: 0 },
-    currency: { type: String, trim: true, default: 'INR', enum: ['INR', 'USD', 'EUR', 'GBP'] }
+    currency: { type: String, trim: true, default: 'INR', enum: CURRENCIES }
   },
   notes: { type: String, trim: true, default: '', maxlength: 2000 }
 }, { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } });

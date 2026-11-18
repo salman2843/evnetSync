@@ -1,25 +1,26 @@
 import mongoose from 'mongoose';
+import { CLIENT_STATUSES, EMAIL_PATTERN, PHONE_PATTERN } from '../utils/validation.js';
 
-const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const phonePattern = /^\+[1-9]\d{0,3}\d{10}$/;
-const clientStatuses = ['New', 'Contacted', 'Booked'];
-
+// A client is a planner-owned contact. Email is optional: many leads arrive by phone.
 const clientSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  plannerName: { type: String, trim: true, default: '' },
   name: { type: String, required: true, trim: true },
-  phone: { type: String, required: true, trim: true, match: [phonePattern, 'Enter a valid phone number with country code'] },
+  phone: { type: String, required: true, trim: true, match: [PHONE_PATTERN, 'Enter a valid phone number with country code'] },
   email: {
     type: String,
-    required: [true, 'Client email is required'],
     trim: true,
     lowercase: true,
-    validate: { validator: (value) => emailPattern.test(value), message: 'Enter a valid email address' }
+    default: '',
+    validate: {
+      validator: (value) => !value || EMAIL_PATTERN.test(value),
+      message: 'Enter a valid email address'
+    }
   },
   address: { type: String, trim: true, default: '' },
   notes: { type: String, trim: true, default: '' },
-  status: { type: String, enum: clientStatuses, default: 'New' },
-  createdAt: { type: Date, default: Date.now }
-});
+  status: { type: String, enum: CLIENT_STATUSES, default: 'New' }
+}, { timestamps: true });
+
+clientSchema.index({ userId: 1, createdAt: -1 });
 
 export default mongoose.model('Client', clientSchema);

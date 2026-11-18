@@ -1,14 +1,32 @@
-import dotenv from 'dotenv';
+// config/env.js must load first so PORT and other settings are available.
+import { config, validateEnv } from './src/config/env.js';
+import mongoose from 'mongoose';
 import app from './app.js';
 import connectDB from './src/config/db.js';
 
-dotenv.config();
+async function start() {
+  try {
+    validateEnv();
+    await connectDB();
 
-const port = process.env.PORT || 5000;
+    const server = app.listen(config.port, () => {
+      console.log(`EventSync API listening on port ${config.port}`);
+    });
 
-connectDB().then(() => {
-  app.listen(port, () => console.log(`EventSync API listening on port ${port}`));
-}).catch((error) => {
-  console.error('Could not start EventSync API:', error.message);
-  process.exit(1);
-});
+    // Close the HTTP server and MongoDB connection cleanly on Ctrl+C or host shutdown.
+    async function shutdown(signal) {
+      console.log(`${signal} received, shutting down...`);
+      server.close(async () => {
+        await mongoose.connection.close();
+        process.exit(0);
+      });
+    }
+    process.on('SIGINT', () => shutdown('SIGINT'));
+    process.on('SIGTERM', () => shutdown('SIGTERM'));
+  } catch (error) {
+    console.error('Could not start EventSync API:', error.message);
+    process.exit(1);
+  }
+}
+
+start();
