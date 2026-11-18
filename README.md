@@ -13,7 +13,7 @@ The backend is being completed first; the React client is kept working but will 
 | Clients | Done |
 | Events + per-event tasks | Done |
 | Vendors | Done |
-| Event vendor assignments | Planned |
+| Event vendor assignments | Done |
 | Action Center (rule engine) | Planned |
 | Dashboard summary, exports, duplicate event, global search | Planned |
 | Frontend redesign | Deferred |
@@ -41,9 +41,9 @@ Event Sync/
       config/             env.js (dotenv + required vars), db.js, eventTypeCatalog.js
       controllers/        HTTP in/out only
       middleware/         auth, errorHandler, rateLimit
-      models/             User, Client, Event, Task, Vendor
+      models/             User, Client, Event, Task, Vendor, EventVendor
       routes/             auth, client, event, profile, vendor, meta
-      services/           authService, clientService (business rules)
+      services/           authService, clientService, profileService, storageService, vendorService, assignmentService
       utils/              validation, apiResponse, asyncHandler, httpError
     tests/                API tests with an in-memory MongoDB
 ```
@@ -145,6 +145,17 @@ Vendor categories are stable IDs from `server/src/config/vendorCatalog.js` (`cat
 | `POST` | `/api/events/:id/tasks` | Add a task |
 | `PUT` | `/api/events/:id/tasks/:taskId` | Update title, status, priority, or due date |
 | `DELETE` | `/api/events/:id/tasks/:taskId` | Delete a task |
+
+### Event vendors
+
+| Method | Route | Description |
+| --- | --- | --- |
+| `GET` | `/api/events/:id/vendors` | List vendors assigned to the event |
+| `POST` | `/api/events/:id/vendors` | Assign a vendor (`vendorId` required) |
+| `PUT` | `/api/events/:id/vendors/:assignmentId` | Update status, category, amount, currency, or notes |
+| `DELETE` | `/api/events/:id/vendors/:assignmentId` | Remove the vendor from the event |
+
+An assignment status is `considering`, `contacted`, `booked`, or `declined`. A vendor can appear only once per event, a vendor in use cannot be deleted, and deleting an event removes its assignments.
 
 ### System
 

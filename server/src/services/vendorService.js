@@ -1,4 +1,5 @@
 import Vendor from '../models/Vendor.js';
+import EventVendor from '../models/EventVendor.js';
 import { vendorCategoryIds } from '../config/vendorCatalog.js';
 import httpError from '../utils/httpError.js';
 import {
@@ -110,6 +111,16 @@ export async function updateVendorForUser(userId, vendorId, body) {
 
 export async function deleteVendorForUser(userId, vendorId) {
   requireValidId(vendorId);
+
+  // Do not remove a vendor that is still booked on an event.
+  const assignmentCount = await EventVendor.countDocuments({ userId, vendorId });
+  if (assignmentCount > 0) {
+    throw httpError(
+      `This vendor is assigned to ${assignmentCount} event${assignmentCount === 1 ? '' : 's'}. Remove those assignments first.`,
+      409
+    );
+  }
+
   const vendor = await Vendor.findOneAndDelete({ _id: vendorId, userId });
   if (!vendor) throw httpError('Vendor not found', 404);
   return vendor;

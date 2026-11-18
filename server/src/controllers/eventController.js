@@ -1,5 +1,6 @@
 import Client from '../models/Client.js';
 import Event from '../models/Event.js';
+import EventVendor from '../models/EventVendor.js';
 import Task from '../models/Task.js';
 import { eventTypeGroups, festivalSubtypeIds } from '../config/eventTypeCatalog.js';
 import asyncHandler from '../utils/asyncHandler.js';
@@ -275,5 +276,6 @@ export const deleteEvent = asyncHandler(async (req, res) => {
   if (!event) return sendError(res, 'Event not found', 404);
 
   await Task.deleteMany({ eventId: event._id, userId: req.user._id });
+  await EventVendor.deleteMany({ eventId: event._id, userId: req.user._id });
   return sendSuccess(res, { event }, 'Event deleted successfully');
 });

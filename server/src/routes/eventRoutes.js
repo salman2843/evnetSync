@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import authenticate from '../middleware/auth.js';
 import { createEvent, createTask, deleteEvent, deleteTask, getEvent, listEvents, updateEvent, updateTask } from '../controllers/eventController.js';
+import { assignVendor, listEventVendors, removeEventVendor, updateEventVendor } from '../controllers/eventVendorController.js';
 
 const router = Router();
 
@@ -9,5 +10,7 @@ router.route('/').get(listEvents).post(createEvent);
 router.route('/:id').get(getEvent).put(updateEvent).delete(deleteEvent);
 router.route('/:id/tasks').post(createTask);
 router.route('/:id/tasks/:taskId').put(updateTask).delete(deleteTask);
+router.route('/:id/vendors').get(listEventVendors).post(assignVendor);
+router.route('/:id/vendors/:assignmentId').put(updateEventVendor).delete(removeEventVendor);
 
 export default router;

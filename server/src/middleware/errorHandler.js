@@ -20,8 +20,15 @@ export function errorHandler(error, _req, res, _next) {
     message = `Invalid value for ${error.path}`;
   } else if (error.code === 11000) {
     status = 409;
-    const field = Object.keys(error.keyPattern || error.keyValue || {})[0];
-    message = field === 'email' ? 'An account with this email already exists' : `${field || 'Record'} already exists`;
+    const keyFields = Object.keys(error.keyPattern || error.keyValue || {});
+    const field = keyFields[0];
+    if (field === 'email') {
+      message = 'An account with this email already exists';
+    } else if (keyFields.includes('eventId') && keyFields.includes('vendorId')) {
+      message = 'This vendor is already assigned to this event';
+    } else {
+      message = `${field || 'Record'} already exists`;
+    }
   } else if (error.code === 'LIMIT_FILE_SIZE') {
     status = 400;
     message = 'Image must be 2 MB or smaller';
