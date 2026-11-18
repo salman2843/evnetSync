@@ -23,6 +23,12 @@ export default asyncHandler(async (req, _res, next) => {
   const user = await User.findById(payload.id);
   if (!user) throw httpError('User account no longer exists', 401);
 
+  // A token issued before the last password change is no longer accepted.
+  // The 1-second tolerance covers tokens created in the same second as the change.
+  if (user.passwordChangedAt && payload.iat && payload.iat * 1000 < user.passwordChangedAt.getTime() - 1000) {
+    throw httpError('Password changed. Please log in again.', 401);
+  }
+
   req.user = user;
   next();
 });

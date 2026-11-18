@@ -8,6 +8,9 @@ import { config } from './src/config/env.js';
 import authRoutes from './src/routes/authRoutes.js';
 import clientRoutes from './src/routes/clientRoutes.js';
 import eventRoutes from './src/routes/eventRoutes.js';
+import metaRoutes from './src/routes/metaRoutes.js';
+import profileRoutes from './src/routes/profileRoutes.js';
+import { uploadRoot } from './src/services/storageService.js';
 import { notFound, errorHandler } from './src/middleware/errorHandler.js';
 
 const app = express();
@@ -19,6 +22,9 @@ app.use(helmet({
 }));
 app.use(cors({ origin: config.clientUrls }));
 app.use(express.json({ limit: '1mb' }));
+
+// Uploaded logos use unique file names, so they can be cached safely.
+app.use('/uploads', express.static(uploadRoot(), { immutable: true, maxAge: '30d' }));
 
 app.get('/api/health', (_req, res) => {
   const databaseConnected = mongoose.connection.readyState === 1;
@@ -32,6 +38,8 @@ app.get('/api/health', (_req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/clients', clientRoutes);
 app.use('/api/events', eventRoutes);
+app.use('/api/meta', metaRoutes);
+app.use('/api/profile', profileRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

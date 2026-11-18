@@ -13,7 +13,8 @@ import {
 
 export const PASSWORD_MIN_LENGTH = 8;
 
-function createToken(userId) {
+// Signs a login token. Exported so a password change can issue a fresh token.
+export function issueToken(userId) {
   if (!config.jwtSecret) throw new Error('JWT_SECRET is not configured');
   return jwt.sign({ id: userId }, config.jwtSecret, { expiresIn: '7d' });
 }
@@ -24,6 +25,9 @@ function publicUser(user) {
     name: user.name,
     email: user.email,
     businessName: user.businessName,
+    businessLogo: user.businessLogo?.path
+      ? { url: user.businessLogo.path, uploadedAt: user.businessLogo.uploadedAt }
+      : null,
     plannerProfile: user.plannerProfile || { eventTypeIds: [], onboardingCompletedAt: null, timeZone: '', currency: '' },
     createdAt: user.createdAt
   };
@@ -82,7 +86,7 @@ export async function registerUser({ name, email, password, businessName }) {
     password,
     businessName: typeof businessName === 'string' ? businessName.trim() : ''
   });
-  return { user: publicUser(user), token: createToken(user._id) };
+  return { user: publicUser(user), token: issueToken(user._id) };
 }
 
 export async function loginUser({ email, password }) {
@@ -94,7 +98,7 @@ export async function loginUser({ email, password }) {
   if (!user || !(await user.comparePassword(password))) {
     throw httpError('Invalid email or password', 401);
   }
-  return { user: publicUser(user), token: createToken(user._id) };
+  return { user: publicUser(user), token: issueToken(user._id) };
 }
 
 export function getPublicUser(user) {

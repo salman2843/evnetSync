@@ -9,6 +9,7 @@ The backend is being completed first; the React client is kept working but will 
 | Area | State |
 | --- | --- |
 | Authentication + planner profile | Done |
+| Profile editing, password change, business logo upload | Done |
 | Clients | Done |
 | Events + per-event tasks | Done |
 | Vendors | Planned |
@@ -91,6 +92,23 @@ All responses use `{ success, data, message }`.
 | `POST` | `/api/auth/login` | Log in and receive a JWT |
 | `GET` | `/api/auth/me` | Current planner and profile |
 | `PUT` | `/api/auth/planner-profile` | Save event-type preferences and onboarding state |
+
+### Profile and media
+
+| Method | Route | Description |
+| --- | --- | --- |
+| `PATCH` | `/api/profile` | Update name, business name, time zone, or currency |
+| `PUT` | `/api/profile/password` | Change password; returns a fresh token for this session |
+| `POST` | `/api/profile/logo` | Upload or replace the business logo (multipart field `logo`) |
+| `DELETE` | `/api/profile/logo` | Remove the business logo and its file |
+
+Logos must be PNG, JPEG, or WebP, at most 2 MB. Files are stored under `server/uploads/logos/` and served from `/uploads/...`; the database stores only the relative path. SVG is rejected on purpose because it can contain script.
+
+### Metadata
+
+| Method | Route | Description |
+| --- | --- | --- |
+| `GET` | `/api/meta/event-types` | Event-type groups and festival sub-types from the server catalog |
 
 ### Clients
 

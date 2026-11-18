@@ -10,13 +10,23 @@ const plannerProfileSchema = new mongoose.Schema({
   currency: { type: String, trim: true, uppercase: true, default: '', enum: [...CURRENCIES, ''] }
 }, { _id: false });
 
+const businessLogoSchema = new mongoose.Schema({
+  path: { type: String, required: true },
+  mimeType: { type: String, required: true },
+  size: { type: Number, required: true, min: 0 },
+  uploadedAt: { type: Date, default: Date.now }
+}, { _id: false });
+
 const userSchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true },
   email: { type: String, required: true, unique: true, lowercase: true, trim: true },
   password: { type: String, required: true, select: false },
   businessName: { type: String, trim: true, default: '' },
+  businessLogo: { type: businessLogoSchema, default: null },
   plannerProfile: { type: plannerProfileSchema, default: () => ({}) },
-  createdAt: { type: Date, default: Date.now }
+  createdAt: { type: Date, default: Date.now },
+  // Tokens issued before this moment stop working after a password change.
+  passwordChangedAt: { type: Date, default: null }
 });
 
 userSchema.pre('save', async function hashPassword() {
