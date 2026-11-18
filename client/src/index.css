@@ -2,29 +2,120 @@
 @tailwind components;
 @tailwind utilities;
 
-body { margin: 0; min-width: 320px; min-height: 100vh; background: #f8fafc; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
-button, input { font: inherit; }
+@layer base {
+  :root {
+    color-scheme: light;
+  }
 
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-canvas font-sans text-ink antialiased;
+    font-feature-settings: 'cv11', 'ss01';
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Browser surfaces carry the palette too: selection, caret, scrollbars. */
+  ::selection {
+    background-color: rgba(154, 52, 18, 0.16);
+    color: #1c1917;
+  }
+
+  :focus-visible {
+    outline: 2px solid #9a3412;
+    outline-offset: 2px;
+  }
+
+  input,
+  textarea {
+    caret-color: #9a3412;
+  }
+
+  /* Keep Chrome's autofill from painting a blue box over the paper surface. */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus {
+    -webkit-text-fill-color: #1c1917;
+    box-shadow: 0 0 0 100px #ffffff inset;
+    transition: background-color 600000s 0s;
+  }
+
+  html {
+    scrollbar-color: #d6d3d1 transparent;
+    scrollbar-width: thin;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #d6d3d1;
+    border: 3px solid #faf9f6;
+    border-radius: 999px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #a8a29e;
+  }
+}
+
+/* One authored entrance for the brand panel and one for the form. */
 @keyframes panel-enter {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
-.panel-enter { animation: panel-enter 320ms ease-out both; }
-
-@keyframes backdrop-enter {
-  from { opacity: 0; }
-  to { opacity: 1; }
+@keyframes rule-draw {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
 }
 
-@keyframes modal-enter {
-  from { opacity: 0; transform: translateY(8px) scale(0.985); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+@keyframes row-enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
-.modal-backdrop { animation: backdrop-enter 180ms ease-out both; }
-.modal-panel { animation: modal-enter 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.panel-enter {
+  animation: panel-enter 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.rule-draw {
+  transform-origin: left;
+  animation: rule-draw 760ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.row-enter {
+  animation: row-enter 380ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
 }

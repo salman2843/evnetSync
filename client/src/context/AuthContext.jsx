@@ -1,43 +1,60 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-import api from '../api/axios.js';
+import { TOKEN_KEY } from '../api/axios.js';
+import { loginRequest, meRequest } from '../api/auth.js';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [token, setToken] = useState(() => localStorage.getItem('eventsync_token'));
+  const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY));
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(Boolean(token));
 
+  // On a reload, trade the stored token for the current user. An expired token
+  // is cleared so the visitor lands back on the login screen.
   useEffect(() => {
-    if (!token) { setLoading(false); return; }
-    api.get('/auth/me')
-      .then(({ data }) => setUser(data.data.user))
-      .catch(() => { localStorage.removeItem('eventsync_token'); setToken(null); setUser(null); })
-      .finally(() => setLoading(false));
+    if (!token) {
+      setUser(null);
+      setLoading(false);
+      return undefined;
+    }
+
+    let active = true;
+    setLoading(true);
+    meRequest()
+      .then((currentUser) => {
+        if (active) setUser(currentUser);
+      })
+      .catch(() => {
+        if (!active) return;
+        localStorage.removeItem(TOKEN_KEY);
+        setToken(null);
+        setUser(null);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
   }, [token]);
 
-  async function authenticate(path, credentials) {
-    const { data } = await api.post(path, credentials);
-    localStorage.setItem('eventsync_token', data.data.token);
-    setToken(data.data.token);
-    setUser(data.data.user);
-    return data.data.user;
+  async function login(credentials) {
+    const data = await loginRequest(credentials);
+    localStorage.setItem(TOKEN_KEY, data.token);
+    setToken(data.token);
+    setUser(data.user);
+    return data.user;
   }
 
-  const login = (credentials) => authenticate('/auth/login', credentials);
-  const register = (details) => authenticate('/auth/register', details);
-  async function updatePlannerProfile(profile) {
-    const { data } = await api.put('/auth/planner-profile', profile);
-    setUser(data.data.user);
-    return data.data.user;
-  }
   function logout() {
-    localStorage.removeItem('eventsync_token');
+    localStorage.removeItem(TOKEN_KEY);
     setToken(null);
     setUser(null);
   }
 
-  return <AuthContext.Provider value={{ user, token, loading, login, register, updatePlannerProfile, logout }}>{children}</AuthContext.Provider>;
+  const value = { user, token, loading, login, logout };
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

@@ -46,3 +46,20 @@ Rules:
 - IF graphify-out/wiki/index.md EXISTS, navigate it instead of reading raw files
 - For cross-module "how does X relate to Y" questions, prefer `graphify query "<question>"`, `graphify path "<A>" "<B>"`, or `graphify explain "<concept>"` over grep — these traverse the graph's EXTRACTED + INFERRED edges instead of scanning files
 - After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
+
+## Frontend rules (client/)
+
+Read `client/README.md` before touching anything under `client/`. It is the source of truth for tokens, primitives, routes and conventions.
+
+- Rebuild lives on branch `frontend-v2`. Do not merge to `main` until `npm run build` and the manual walkthrough pass.
+- Use plain JSX, React 18, Vite, Tailwind 3 and React Router 6. No TypeScript, no Tailwind 4 migration in this rebuild.
+- Style only with tokens from `client/tailwind.config.js`. No hardcoded hex, colour, shadow or font stack in a component. Add a token first, then document it in `client/README.md`.
+- Reuse `components/ui/` (`Button`, `TextField`, ...). Never copy button/input/badge styles into a page. Add a new primitive when a pattern repeats.
+- All HTTP calls go through `client/src/api/`. Pages never import Axios directly. Use `getErrorMessage` for user-facing failures.
+- Auth: token key is `eventsync_token`; use `useAuth()` and wrap private routes in `<ProtectedRoute>`.
+- Every async screen ships loading, empty, error and success states. No `window.confirm` / `window.alert`.
+- Mobile first: verify 390, 768 and 1440 with no horizontal scroll. Keep touch targets at least 44px.
+- Icons come from `lucide-react` or the authored `BrandMark`; never emoji.
+- Keep pages under roughly 250 lines and split sections into components. One feature per task.
+- Update `client/README.md` whenever you add a route, token or shared primitive, then run `npm run build`.
+- Installed skills live in `.opencode/skills/`. See `.opencode/skills/README.md` for sources and what was vendored.

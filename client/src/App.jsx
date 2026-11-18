@@ -1,36 +1,47 @@
-import { Navigate, Route, Routes } from 'react-router-dom';
-import { useAuth } from './context/AuthContext.jsx';
-import AppLayout from './components/AppLayout.jsx';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import FullScreenLoader from './components/FullScreenLoader.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
-import Dashboard from './pages/Dashboard.jsx';
+import { AuthProvider, useAuth } from './context/AuthContext.jsx';
+import ComingSoon from './pages/ComingSoon.jsx';
 import Login from './pages/Login.jsx';
-import Register from './pages/Register.jsx';
-import Clients from './pages/Clients.jsx';
-import Onboarding from './pages/Onboarding.jsx';
-import Settings from './pages/Settings.jsx';
-import Events from './pages/Events.jsx';
 
 function HomeRedirect() {
   const { user, loading } = useAuth();
-  if (loading) return <div className="p-8 text-center text-slate-600">Loading…</div>;
-  const nextPage = user ? (user.plannerProfile?.onboardingCompletedAt ? '/dashboard' : '/onboarding') : '/login';
-  return <Navigate to={nextPage} replace />;
+  if (loading) return <FullScreenLoader />;
+  return <Navigate to={user ? '/dashboard' : '/login'} replace />;
 }
 
 export default function App() {
-  return <Routes>
-    <Route path="/" element={<HomeRedirect />} />
-    <Route path="/login" element={<Login />} />
-    <Route path="/register" element={<Register />} />
-    <Route element={<ProtectedRoute />}>
-      <Route path="/onboarding" element={<Onboarding />} />
-      <Route element={<AppLayout />}>
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/clients" element={<Clients />} />
-        <Route path="/events" element={<Events />} />
-        <Route path="/settings" element={<Settings />} />
-      </Route>
-    </Route>
-    <Route path="*" element={<HomeRedirect />} />
-  </Routes>;
+  return (
+    <BrowserRouter>
+      <AuthProvider>
+        <Routes>
+          <Route path="/" element={<HomeRedirect />} />
+          <Route path="/login" element={<Login />} />
+          <Route
+            path="/register"
+            element={
+              <ComingSoon
+                title="Registration is next"
+                description="The client is being rebuilt one screen at a time. Sign in with the seeded demo planner for now."
+              />
+            }
+          />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <ComingSoon
+                  signedIn
+                  title="You are signed in"
+                  description="Your session works. The dashboard is the next screen in the rebuild."
+                />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </AuthProvider>
+    </BrowserRouter>
+  );
 }
