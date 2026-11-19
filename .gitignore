@@ -6,6 +6,5 @@ dist/
 !.env.example
 server/uploads/
 
-.codex
 /graphify-out
 /docs/
