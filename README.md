@@ -10,7 +10,7 @@ The backend is being completed first; the React client is kept working but will 
 | --- | --- |
 | Authentication + planner profile | Done |
 | Profile editing, password change, business logo upload | Done |
-| Clients | Done |
+| Clients | Done (API + card screen) |
 | Events + per-event tasks | Done |
 | Vendors | Done |
 | Event vendor assignments | Done |
@@ -123,10 +123,10 @@ Logos must be PNG, JPEG, or WebP, at most 2 MB. Files are stored under `server/u
 
 | Method | Route | Description |
 | --- | --- | --- |
-| `GET` | `/api/clients?status=&search=` | List the planner's clients |
-| `POST` | `/api/clients` | Create a client (name + phone required, email optional) |
+| `GET` | `/api/clients?status=&search=&sort=&page=&limit=` | List the planner's clients; `sort` is `recent` or `name`; each row includes `eventCount` and `nextEventAt` |
+| `POST` | `/api/clients` | Create a client (name + phone required; email, company, source, preferred contact, address, notes, status optional) |
 | `GET` | `/api/clients/:id` | One client |
-| `PUT` | `/api/clients/:id` | Update a client |
+| `PUT` | `/api/clients/:id` | Update a client; a partial `{ status }` body is enough for the card's status pill |
 | `DELETE` | `/api/clients/:id` | Delete a client; returns `409` if events still use it |
 
 ### Vendors

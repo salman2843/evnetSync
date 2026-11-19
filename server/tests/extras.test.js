@@ -145,8 +145,8 @@ describe('extras: duplicate, exports, search', () => {
       assert.equal(res.status, 200);
       assert.match(res.headers['content-type'], /text\/csv/);
       assert.match(res.headers['content-disposition'], /attachment; filename="clients-\d{4}-\d{2}-\d{2}\.csv"/);
-      assert.match(res.text, /Name,Phone,Email,Status,Address,Notes,Created/);
-      assert.match(res.text, /Ravi Kumar,\+919876543210,ravi@example\.com/);
+      assert.match(res.text, /Name,Company,Phone,Email,Preferred contact,Source,Status,Address,Notes,Created/);
+      assert.match(res.text, /Ravi Kumar,,(?:\+919876543210|"\+919876543210"),ravi@example\.com,WhatsApp,,New/);
     });
 
     test('exports events with client and budget columns', async () => {

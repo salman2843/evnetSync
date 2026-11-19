@@ -3,9 +3,9 @@
 The planner-facing React app. This folder is being rebuilt from scratch on the
 `frontend-v2` branch. The old client is preserved in git history.
 
-**Current state:** login, registration and the dashboard are built. `/clients`,
-`/vendors`, `/events`, `/events/:id`, `/actions` and `/settings` render a holding
-screen inside the app shell. Unknown routes redirect home.
+**Current state:** login, registration, the dashboard and the clients card screen
+are built. `/vendors`, `/events`, `/events/:id`, `/actions` and `/settings`
+render a holding screen inside the app shell. Unknown routes redirect home.
 
 ## Stack
 
@@ -101,19 +101,24 @@ Fraunces (display) and Inter (UI) load from Google Fonts in `index.html` with
 
 ```text
 client/src/
-  api/            axios.js (instance + token + 401), auth.js, dashboard.js, actions.js
+  api/            axios.js (instance + token + 401), auth.js, clients.js,
+                  dashboard.js, actions.js
   components/
     auth/         AuthPanel (shared dark panel for login and register)
+    clients/      ClientCard, ClientStatusPill, ClientForm, ClientsToolbar,
+                  ClientsSkeleton, ClientsEmpty
     dashboard/    StatCard, NextEvents, ActionFeed, BudgetPanel, PipelinePanel,
                   DashboardSkeleton, EmptyWorkspace
     layout/       AppShell (sidebar, mobile header and tab bar)
-    ui/           Button, TextField, PasswordField, Badge, Panel, Skeleton
+    ui/           Button, TextField, PasswordField, Select, Textarea, Badge,
+                  Panel, Skeleton, Drawer, ConfirmDialog, Toast, FilterChips
     BrandMark, FullScreenLoader, ProtectedRoute
   context/        AuthContext.jsx (token, user, login, register, logout)
-  hooks/          useDashboardSummary.js
-  lib/            apiError.js, format.js (dates/money/due words), labels.js (enums),
-                  usePageTitle.js
-  pages/          Login, Register, Dashboard, ComingSoon
+  hooks/          useDashboardSummary.js, useClients.js, useDebouncedValue.js,
+                  useToast.js
+  lib/            apiError.js, contact.js (wa.me/tel/mailto), format.js,
+                  labels.js (enums), validation.js (phone/email), usePageTitle.js
+  pages/          Login, Register, Dashboard, Clients, ComingSoon
   App.jsx         routes and the guarded-page helper
   index.css       Tailwind layers, focus, selection, motion
   main.jsx        React root
@@ -133,6 +138,24 @@ client/src/
 
 `NAV_ITEMS` in AppShell is the single list behind the sidebar and the tabs. Add a
 destination there and in `App.jsx`; do not hardcode nav markup in a page.
+
+## Clients screen
+
+`/clients` is a card grid, not a table: one column at 390, two at `md`, three at
+`xl`. Each card shows the status pill, name, company and lead source, contact
+links, next event, notes (three lines) and one-tap WhatsApp / Call / Email.
+
+- The **status pill is the editor**. It is a native `<select>`; changing it calls
+  `PUT /clients/:id` with `{ status }`, updates the card immediately and rolls
+  back with a toast if the server refuses. No edit screen is needed for the
+  common move from New to Contacted to Booked.
+- **New client / Edit** open the shared `Drawer`: right sheet on desktop, full
+  screen below `sm`. The form mirrors the server rules in `lib/validation.js`.
+- **Delete** uses `ConfirmDialog`, never `window.confirm`. The API returns `409`
+  when the client still has events; that message is shown inside the dialog.
+  A booked client with no events can be deleted, with a warning.
+- Search is debounced 300 ms. Status chips, sort and pagination reset to page 1
+  on change. Nine cards per page, Previous/Next at the bottom.
 
 ## Conventions
 
@@ -210,7 +233,7 @@ shown on the email input, not in the form banner.
 | `/register` | Built | `POST /auth/register` |
 | `/dashboard` | Built | `GET /dashboard/summary`, `POST /actions/regenerate`, `PATCH /actions/:id` |
 | `/actions` | Holding screen | `GET /actions` |
-| `/clients` | Holding screen | `GET /clients` |
+| `/clients` | Built | `GET /clients` (search, status, sort, page), `POST /clients`, `PUT /clients/:id`, `DELETE /clients/:id` |
 | `/vendors` | Holding screen | `GET /vendors` |
 | `/events` | Holding screen | `GET /events` |
 | `/events/:id` | Holding screen | `GET /events/:id` |

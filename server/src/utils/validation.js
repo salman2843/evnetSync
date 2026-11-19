@@ -6,6 +6,8 @@ export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export const PHONE_PATTERN = /^\+[1-9]\d{7,14}$/;
 
 export const CLIENT_STATUSES = ['New', 'Contacted', 'Booked'];
+export const CLIENT_SOURCES = ['Referral', 'Instagram', 'WhatsApp', 'Other'];
+export const PREFERRED_CONTACTS = ['WhatsApp', 'Phone call', 'Email'];
 export const EVENT_STATUSES = ['inquiry', 'planning', 'confirmed', 'completed', 'cancelled'];
 export const TASK_STATUSES = ['open', 'completed'];
 export const TASK_PRIORITIES = ['low', 'normal', 'high'];

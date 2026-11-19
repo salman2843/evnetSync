@@ -39,8 +39,23 @@ export const ASSIGNMENT_STATUS = {
   declined: 'Declined'
 };
 
+export const CLIENT_STATUS = {
+  New: { label: 'New', tone: 'neutral' },
+  Contacted: { label: 'Contacted', tone: 'brand' },
+  Booked: { label: 'Booked', tone: 'success' }
+};
+
+export const CLIENT_STATUS_ORDER = ['New', 'Contacted', 'Booked'];
+// The short lead-source list offered in the client form.
+export const CLIENT_SOURCES = ['Referral', 'Instagram', 'WhatsApp', 'Other'];
+export const PREFERRED_CONTACTS = ['WhatsApp', 'Phone call', 'Email'];
+
 export function eventStatus(status) {
   return EVENT_STATUS[status] || { label: status || 'Unknown', tone: 'neutral' };
+}
+
+export function clientStatus(status) {
+  return CLIENT_STATUS[status] || { label: status || 'Unknown', tone: 'neutral' };
 }
 
 export function eventTypeLabel(eventTypeId) {

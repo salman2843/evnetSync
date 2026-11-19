@@ -13,8 +13,11 @@ const list = (values) => (values || []).join('; ');
 
 const clientColumns = [
   { label: 'Name', value: (row) => row.name },
+  { label: 'Company', value: (row) => row.company },
   { label: 'Phone', value: (row) => row.phone },
   { label: 'Email', value: (row) => row.email },
+  { label: 'Preferred contact', value: (row) => row.preferredContact },
+  { label: 'Source', value: (row) => row.source },
   { label: 'Status', value: (row) => row.status },
   { label: 'Address', value: (row) => row.address },
   { label: 'Notes', value: (row) => row.notes },

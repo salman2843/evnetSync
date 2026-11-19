@@ -4,6 +4,7 @@ import FullScreenLoader from './components/FullScreenLoader.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import ComingSoon from './pages/ComingSoon.jsx';
+import Clients from './pages/Clients.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
@@ -44,15 +45,7 @@ export default function App() {
               />
             )}
           />
-          <Route
-            path="/clients"
-            element={privatePage(
-              <ComingSoon
-                title="Clients"
-                description="Every client with their contact details, status and the events they belong to."
-              />
-            )}
-          />
+          <Route path="/clients" element={privatePage(<Clients />)} />
           <Route
             path="/vendors"
             element={privatePage(

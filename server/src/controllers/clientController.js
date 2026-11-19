@@ -1,18 +1,24 @@
 import Client from '../models/Client.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { sendCreated, sendError, sendSuccess } from '../utils/apiResponse.js';
-import { deleteClientForUser } from '../services/clientService.js';
+import { attachClientEventStats, deleteClientForUser } from '../services/clientService.js';
 import {
+  CLIENT_SOURCES,
   CLIENT_STATUSES,
   EMAIL_PATTERN,
   PHONE_PATTERN,
+  PREFERRED_CONTACTS,
   escapeRegex,
   isValidId,
   normalizePhone
 } from '../utils/validation.js';
 import { paginationMeta, parsePagination } from '../utils/pagination.js';
 
-const editableFields = ['name', 'phone', 'email', 'address', 'notes', 'status'];
+const editableFields = ['name', 'phone', 'email', 'company', 'source', 'preferredContact', 'address', 'notes', 'status'];
+const SORTS = {
+  recent: { createdAt: -1 },
+  name: { name: 1 }
+};
 
 // Picks only editable fields from the request body and trims text values.
 function clientFields(body) {
@@ -42,6 +48,12 @@ function validateClientFields(fields, { creating = false } = {}) {
   if (fields.status !== undefined && !CLIENT_STATUSES.includes(fields.status)) {
     return 'Choose a valid client status';
   }
+  if (fields.source !== undefined && fields.source && !CLIENT_SOURCES.includes(fields.source)) {
+    return 'Choose a valid lead source';
+  }
+  if (fields.preferredContact !== undefined && !PREFERRED_CONTACTS.includes(fields.preferredContact)) {
+    return 'Choose a valid preferred contact method';
+  }
   return null;
 }
 
@@ -59,17 +71,20 @@ export const listClients = asyncHandler(async (req, res) => {
     return sendError(res, 'Choose a valid client status filter');
   }
 
+  const sortKey = req.query.sort || 'recent';
+  if (!SORTS[sortKey]) return sendError(res, 'Choose a valid client sort');
+
   const filter = { userId: req.user._id };
   const search = req.query.search?.trim();
   if (search) {
     const match = new RegExp(escapeRegex(search), 'i');
-    filter.$or = [{ name: match }, { phone: match }, { email: match }];
+    filter.$or = [{ name: match }, { phone: match }, { email: match }, { company: match }];
   }
   if (req.query.status) filter.status = req.query.status;
 
   const page = parsePagination(req.query);
 
-  const clientsQuery = Client.find(filter).sort({ createdAt: -1 });
+  const clientsQuery = Client.find(filter).sort(SORTS[sortKey]).lean();
   if (page) clientsQuery.skip(page.skip).limit(page.limit);
 
   const [clients, total] = await Promise.all([
@@ -77,9 +92,13 @@ export const listClients = asyncHandler(async (req, res) => {
     page ? Client.countDocuments(filter) : null
   ]);
 
+  // The card grid shows "2 events · next 12 Mar", so each row carries its own
+  // event summary instead of the client making one request per card.
+  const clientsWithStats = await attachClientEventStats(clients, req.user._id);
+
   return sendSuccess(
     res,
-    { clients, ...(page ? { pagination: paginationMeta(total, page) } : {}) },
+    { clients: clientsWithStats, ...(page ? { pagination: paginationMeta(total, page) } : {}) },
     'Clients loaded successfully'
   );
 });

@@ -68,15 +68,17 @@ Replacing a logo deletes the previous file from disk. SVG is rejected.
 
 | Method | Route | Body / query |
 | --- | --- | --- |
-| `GET` | `/clients?status=&search=&page=&limit=` | `status` is `New`, `Contacted`, or `Booked`; search covers name, phone, email |
-| `POST` | `/clients` | `{ name, phone, email?, address?, notes?, status? }` |
+| `GET` | `/clients?status=&search=&sort=&page=&limit=` | `status` is `New`, `Contacted`, or `Booked`; `sort` is `recent` (default) or `name`; search covers name, company, phone, email. Each client includes `eventCount` and `nextEventAt` |
+| `POST` | `/clients` | `{ name, phone, email?, company?, source?, preferredContact?, address?, notes?, status? }` |
 | `GET` | `/clients/:id` | — |
-| `PUT` | `/clients/:id` | Any editable field |
+| `PUT` | `/clients/:id` | Any editable field, including a partial `{ status }` update from the card |
 | `DELETE` | `/clients/:id` | — |
 
 Rules:
 - `name` and `phone` are required; phone must be E.164 (`+919876543210`) and is normalized from spaces, dashes, dots, and brackets.
 - `email` is optional but validated when present.
+- `source` is optional; when set it must be `Referral`, `Instagram`, `WhatsApp`, or `Other`.
+- `preferredContact` is `WhatsApp` (default), `Phone call`, or `Email`.
 - Deleting a client that still has events returns `409` with the event count.
 
 ## Vendors
@@ -98,7 +100,7 @@ Rules:
 
 | Method | Route | Body / query |
 | --- | --- | --- |
-| `GET` | `/events?status=&page=&limit=` | Optional status filter; each event includes `taskSummary { total, completed }` |
+| `GET` | `/events?status=&clientId=&page=&limit=` | Optional status and client filters; each event includes `taskSummary { total, completed }` |
 | `POST` | `/events` | `{ clientId, title, eventTypeId, startAt, subEventTypeId?, surpriseFor?, status?, budget?, notes? }` |
 | `GET` | `/events/:id` | Returns `{ event, tasks }` |
 | `PUT` | `/events/:id` | Any editable field |

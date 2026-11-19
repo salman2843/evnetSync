@@ -106,6 +106,12 @@ export const listEvents = asyncHandler(async (req, res) => {
 
   const filter = { userId: req.user._id };
   if (req.query.status) filter.status = req.query.status;
+  // The client card and the future client detail screen need one client's
+  // events. Ownership still comes from userId, so a foreign id returns nothing.
+  if (req.query.clientId) {
+    if (!isValidId(req.query.clientId)) return sendError(res, 'Invalid client ID');
+    filter.clientId = req.query.clientId;
+  }
 
   const page = parsePagination(req.query);
 

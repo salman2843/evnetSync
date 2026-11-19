@@ -40,6 +40,15 @@ export function formatShortDate(value) {
   return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' }).format(new Date(value));
 }
 
+// "12 Mar", with a year only when it is not the current one. Used for the next
+// event line on a client card.
+export function formatUpcomingDate(value, now = new Date()) {
+  const date = new Date(value);
+  const options = { day: 'numeric', month: 'short' };
+  if (date.getFullYear() !== now.getFullYear()) options.year = 'numeric';
+  return new Intl.DateTimeFormat('en-GB', options).format(date);
+}
+
 export function formatToday(value = new Date()) {
   return new Intl.DateTimeFormat('en-GB', {
     weekday: 'long',

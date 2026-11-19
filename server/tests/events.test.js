@@ -156,4 +156,61 @@ describe('events and tasks', () => {
 
     assert.equal(res.status, 400);
   });
+
+  test('filters the event list by client', async () => {
+    await createFestivalEvent();
+
+    const otherClient = await request(app)
+      .post('/api/clients')
+      .set(auth(token))
+      .send({ name: 'Neha Shah', phone: '+919000000003' });
+    const otherClientId = otherClient.body.data.client._id;
+
+    await request(app).post('/api/events').set(auth(token)).send({
+      clientId: otherClientId,
+      title: 'Neha Reception',
+      eventTypeId: 'wedding',
+      startAt: '2027-02-14T10:00:00.000Z'
+    });
+
+    const res = await request(app)
+      .get(`/api/events?clientId=${otherClientId}`)
+      .set(auth(token));
+
+    assert.equal(res.status, 200);
+    assert.equal(res.body.data.events.length, 1);
+    assert.equal(res.body.data.events[0].title, 'Neha Reception');
+  });
+
+  test('does not return another planner\'s events for a client filter', async () => {
+    const other = await createPlanner();
+    const otherClient = await Client.create({
+      userId: other.user._id,
+      name: 'Private Client',
+      phone: '+919000000004'
+    });
+    await request(app)
+      .post('/api/events')
+      .set(auth(other.token))
+      .send({
+        clientId: otherClient._id,
+        title: 'Private Event',
+        eventTypeId: 'wedding',
+        startAt: '2027-05-01T10:00:00.000Z'
+      });
+
+    const res = await request(app)
+      .get(`/api/events?clientId=${otherClient._id}`)
+      .set(auth(token));
+
+    assert.equal(res.status, 200);
+    assert.equal(res.body.data.events.length, 0);
+  });
+
+  test('rejects a malformed client filter id', async () => {
+    const res = await request(app).get('/api/events?clientId=not-an-id').set(auth(token));
+
+    assert.equal(res.status, 400);
+    assert.match(res.body.message, /client id/i);
+  });
 });
