@@ -8,6 +8,7 @@ import Clients from './pages/Clients.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
+import Vendors from './pages/Vendors.jsx';
 
 function HomeRedirect() {
   const { user, loading } = useAuth();
@@ -46,15 +47,7 @@ export default function App() {
             )}
           />
           <Route path="/clients" element={privatePage(<Clients />)} />
-          <Route
-            path="/vendors"
-            element={privatePage(
-              <ComingSoon
-                title="Vendors"
-                description="Your vendor book, with categories, contact details and the events each one is working on."
-              />
-            )}
-          />
+          <Route path="/vendors" element={privatePage(<Vendors />)} />
           <Route
             path="/events"
             element={privatePage(

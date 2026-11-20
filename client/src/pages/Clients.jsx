@@ -157,6 +157,9 @@ export default function Clients() {
         }. Their contact details will be removed permanently.`
     : '';
 
+  // A client with events, or a refused request, leaves only Close in the dialog.
+  const deleteBlocked = Boolean(deleting?.eventCount) || Boolean(deleteError);
+
   const isEmpty = !loading && clients.length === 0;
 
   return (
@@ -277,6 +280,8 @@ export default function Clients() {
         title="Delete this client?"
         description={deleteDescription}
         confirmLabel="Delete client"
+        cancelLabel={deleting?.eventCount ? 'Close' : 'Cancel'}
+        confirmDisabled={deleteBlocked}
         loading={deleteLoading}
         error={deleteError}
         onConfirm={confirmDelete}

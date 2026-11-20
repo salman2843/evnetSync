@@ -17,3 +17,10 @@ export function callLink(phone) {
 export function emailLink(email) {
   return email ? `mailto:${email}` : '';
 }
+
+// Vendors store a full URL, but the card reads better without https://.
+export function websiteLabel(url) {
+  return String(url || '')
+    .replace(/^https?:\/\//i, '')
+    .replace(/\/$/, '');
+}

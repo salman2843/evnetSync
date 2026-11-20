@@ -200,4 +200,45 @@ describe('vendors', () => {
     assert.ok(res.body.data.categories.length >= 10);
     assert.ok(res.body.data.categories.some((category) => category.id === 'catering'));
   });
+
+  test('reports how many events each vendor is assigned to', async () => {
+    const vendorRes = await request(app)
+      .post('/api/vendors')
+      .set(auth(token))
+      .send({ name: 'Royal Caterers', serviceCategoryIds: ['catering'] });
+    const vendorId = vendorRes.body.data.vendor._id;
+
+    const clientRes = await request(app)
+      .post('/api/clients')
+      .set(auth(token))
+      .send({ name: 'Ravi Kumar', phone: '+919876543210' });
+    const clientId = clientRes.body.data.client._id;
+
+    for (const [title, startAt] of [
+      ['Ravi Wedding', '2027-02-14T10:00:00.000Z'],
+      ['Ravi Reception', '2027-02-15T10:00:00.000Z']
+    ]) {
+      const event = await request(app).post('/api/events').set(auth(token)).send({
+        clientId,
+        title,
+        eventTypeId: 'wedding',
+        startAt
+      });
+      const assigned = await request(app)
+        .post(`/api/events/${event.body.data.event._id}/vendors`)
+        .set(auth(token))
+        .send({ vendorId });
+      assert.equal(assigned.status, 201);
+    }
+
+    await request(app).post('/api/vendors').set(auth(token)).send({ name: 'Pixel Studio' });
+
+    const res = await request(app).get('/api/vendors').set(auth(token));
+
+    assert.equal(res.status, 200);
+    const assignedVendor = res.body.data.vendors.find((vendor) => vendor._id === vendorId);
+    const freeVendor = res.body.data.vendors.find((vendor) => vendor.name === 'Pixel Studio');
+    assert.equal(assignedVendor.assignmentCount, 2);
+    assert.equal(freeVendor.assignmentCount, 0);
+  });
 });

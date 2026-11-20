@@ -12,7 +12,7 @@ The backend is being completed first; the React client is kept working but will 
 | Profile editing, password change, business logo upload | Done |
 | Clients | Done (API + card screen) |
 | Events + per-event tasks | Done |
-| Vendors | Done |
+| Vendors | Done (API + card screen) |
 | Event vendor assignments | Done |
 | Action Center (rule engine) | Done |
 | Dashboard summary | Done |
@@ -133,7 +133,7 @@ Logos must be PNG, JPEG, or WebP, at most 2 MB. Files are stored under `server/u
 
 | Method | Route | Description |
 | --- | --- | --- |
-| `GET` | `/api/vendors?search=&category=` | List the planner's private vendor directory |
+| `GET` | `/api/vendors?search=&category=&page=&limit=` | List the planner's private vendor directory; each vendor includes `assignmentCount` |
 | `POST` | `/api/vendors` | Add a vendor (name required; contact details optional) |
 | `GET` | `/api/vendors/:id` | One vendor |
 | `PUT` | `/api/vendors/:id` | Update a vendor |

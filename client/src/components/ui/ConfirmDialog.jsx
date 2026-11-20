@@ -14,6 +14,8 @@ export default function ConfirmDialog({
   title,
   description,
   confirmLabel = 'Delete',
+  cancelLabel = 'Cancel',
+  confirmDisabled = false,
   loading = false,
   error = '',
   onConfirm,
@@ -118,11 +120,12 @@ export default function ConfirmDialog({
 
         <div className="mt-5 flex justify-end gap-2">
           <Button ref={cancelRef} variant="ghost" onClick={onCancel} disabled={loading}>
-            Cancel
+            {cancelLabel}
           </Button>
           <Button
             onClick={onConfirm}
             loading={loading}
+            disabled={confirmDisabled}
             className="bg-danger hover:bg-danger/90 focus-visible:ring-danger"
           >
             {confirmLabel}

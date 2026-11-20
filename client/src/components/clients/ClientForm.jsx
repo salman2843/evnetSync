@@ -1,13 +1,14 @@
 import { useRef, useState } from 'react';
 import { AlertCircle } from 'lucide-react';
 import Button from '../ui/Button.jsx';
+import PhoneField from '../ui/PhoneField.jsx';
 import Select from '../ui/Select.jsx';
 import TextField from '../ui/TextField.jsx';
 import Textarea from '../ui/Textarea.jsx';
 import { createClient, updateClient } from '../../api/clients.js';
 import getErrorMessage from '../../lib/apiError.js';
 import { CLIENT_SOURCES, CLIENT_STATUS_ORDER, PREFERRED_CONTACTS } from '../../lib/labels.js';
-import { EMAIL_PATTERN, PHONE_PATTERN, normalizePhone } from '../../lib/validation.js';
+import { EMAIL_PATTERN, NATIONAL_PHONE_LENGTH, nationalFromPhone, toE164 } from '../../lib/validation.js';
 
 const EMPTY_VALUES = {
   name: '',
@@ -25,7 +26,8 @@ function initialValues(client) {
   if (!client) return EMPTY_VALUES;
   return {
     name: client.name || '',
-    phone: client.phone || '',
+    // The form keeps only the ten national digits; +91 is the fixed prefix.
+    phone: nationalFromPhone(client.phone),
     email: client.email || '',
     company: client.company || '',
     source: client.source || '',
@@ -39,13 +41,12 @@ function initialValues(client) {
 // Same rules as the server. Fix the first problem first; the rest can wait.
 function validate(values) {
   const errors = {};
-  const phone = normalizePhone(values.phone.trim());
 
   if (!values.name.trim()) errors.name = 'Enter the client’s name.';
 
-  if (!phone) errors.phone = 'Enter a phone number.';
-  else if (!PHONE_PATTERN.test(phone)) {
-    errors.phone = 'Include the country code, for example +919876543210.';
+  if (!values.phone) errors.phone = 'Enter a phone number.';
+  else if (values.phone.length !== NATIONAL_PHONE_LENGTH) {
+    errors.phone = 'Enter all 10 digits.';
   }
 
   if (values.email.trim() && !EMAIL_PATTERN.test(values.email.trim())) {
@@ -79,13 +80,6 @@ export default function ClientForm({ client, onSaved, onCancel }) {
     if (formError) setFormError('');
   }
 
-  function handlePhoneBlur() {
-    const normalized = normalizePhone(values.phone.trim());
-    if (PHONE_PATTERN.test(normalized)) {
-      setValues((current) => ({ ...current, phone: normalized }));
-    }
-  }
-
   async function handleSubmit(event) {
     event.preventDefault();
     if (saving) return;
@@ -102,7 +96,7 @@ export default function ClientForm({ client, onSaved, onCancel }) {
 
     const payload = {
       name: values.name.trim(),
-      phone: normalizePhone(values.phone.trim()),
+      phone: toE164(values.phone),
       email: values.email.trim().toLowerCase(),
       company: values.company.trim(),
       source: values.source,
@@ -156,19 +150,15 @@ export default function ClientForm({ client, onSaved, onCancel }) {
             error={errors.name}
           />
 
-          <TextField
+          <PhoneField
             ref={phoneRef}
             id="client-phone"
             name="phone"
-            type="tel"
-            inputMode="tel"
             label="Phone number"
-            autoComplete="tel"
-            placeholder="+91 98765 43210"
-            hint="Include the country code."
+            placeholder="98765 43210"
+            hint="10-digit mobile number."
             value={values.phone}
             onChange={handleChange}
-            onBlur={handlePhoneBlur}
             error={errors.phone}
           />
 

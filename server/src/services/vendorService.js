@@ -61,6 +61,30 @@ function validateVendorFields(fields, { creating = false } = {}) {
   return null;
 }
 
+// A vendor card says how many events the vendor is working on. One query for
+// the whole page keeps the list cheap instead of asking per card.
+export async function attachVendorAssignmentStats(vendors, userId) {
+  if (vendors.length === 0) return vendors;
+
+  const assignments = await EventVendor.find({
+    userId,
+    vendorId: { $in: vendors.map((vendor) => vendor._id) }
+  })
+    .select('vendorId')
+    .lean();
+
+  const counts = new Map();
+  for (const assignment of assignments) {
+    const key = String(assignment.vendorId);
+    counts.set(key, (counts.get(key) || 0) + 1);
+  }
+
+  return vendors.map((vendor) => ({
+    ...vendor,
+    assignmentCount: counts.get(String(vendor._id)) || 0
+  }));
+}
+
 export async function listVendorsForUser(userId, query = {}) {
   const filter = { userId };
 
@@ -76,7 +100,7 @@ export async function listVendorsForUser(userId, query = {}) {
   }
 
   const page = parsePagination(query);
-  const vendorsQuery = Vendor.find(filter).sort({ name: 1 });
+  const vendorsQuery = Vendor.find(filter).sort({ name: 1 }).lean();
   if (page) vendorsQuery.skip(page.skip).limit(page.limit);
 
   const [vendors, total] = await Promise.all([
@@ -84,7 +108,9 @@ export async function listVendorsForUser(userId, query = {}) {
     page ? Vendor.countDocuments(filter) : null
   ]);
 
-  return { vendors, pagination: page ? paginationMeta(total, page) : null };
+  const vendorsWithStats = await attachVendorAssignmentStats(vendors, userId);
+
+  return { vendors: vendorsWithStats, pagination: page ? paginationMeta(total, page) : null };
 }
 
 export async function getVendorForUser(userId, vendorId) {

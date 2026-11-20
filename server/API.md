@@ -85,7 +85,7 @@ Rules:
 
 | Method | Route | Body / query |
 | --- | --- | --- |
-| `GET` | `/vendors?search=&category=&page=&limit=` | Search covers name, phone, email, address |
+| `GET` | `/vendors?search=&category=&page=&limit=` | Search covers name, phone, email, address; each vendor includes `assignmentCount` |
 | `POST` | `/vendors` | `{ name, serviceCategoryIds?, phone?, email?, website?, address?, notes? }` |
 | `GET` | `/vendors/:id` | — |
 | `PUT` | `/vendors/:id` | Any editable field |

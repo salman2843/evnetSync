@@ -3,8 +3,8 @@
 The planner-facing React app. This folder is being rebuilt from scratch on the
 `frontend-v2` branch. The old client is preserved in git history.
 
-**Current state:** login, registration, the dashboard and the clients card screen
-are built. `/vendors`, `/events`, `/events/:id`, `/actions` and `/settings`
+**Current state:** login, registration, the dashboard plus the clients and vendors
+card screens are built. `/events`, `/events/:id`, `/actions` and `/settings`
 render a holding screen inside the app shell. Unknown routes redirect home.
 
 ## Stack
@@ -102,23 +102,26 @@ Fraunces (display) and Inter (UI) load from Google Fonts in `index.html` with
 ```text
 client/src/
   api/            axios.js (instance + token + 401), auth.js, clients.js,
-                  dashboard.js, actions.js
+                  vendors.js, meta.js, dashboard.js, actions.js
   components/
     auth/         AuthPanel (shared dark panel for login and register)
     clients/      ClientCard, ClientStatusPill, ClientForm, ClientsToolbar,
                   ClientsSkeleton, ClientsEmpty
+    vendors/      VendorCard, VendorForm, VendorsToolbar, VendorsSkeleton,
+                  VendorsEmpty
     dashboard/    StatCard, NextEvents, ActionFeed, BudgetPanel, PipelinePanel,
                   DashboardSkeleton, EmptyWorkspace
     layout/       AppShell (sidebar, mobile header and tab bar)
-    ui/           Button, TextField, PasswordField, Select, Textarea, Badge,
-                  Panel, Skeleton, Drawer, ConfirmDialog, Toast, FilterChips
+    ui/           Button, TextField, PasswordField, PhoneField, Select, Textarea,
+                  Badge, Panel, Skeleton, Drawer, ConfirmDialog, Toast,
+                  FilterChips, MultiSelectChips
     BrandMark, FullScreenLoader, ProtectedRoute
   context/        AuthContext.jsx (token, user, login, register, logout)
-  hooks/          useDashboardSummary.js, useClients.js, useDebouncedValue.js,
-                  useToast.js
+  hooks/          useDashboardSummary.js, useClients.js, useVendors.js,
+                  useDebouncedValue.js, useToast.js
   lib/            apiError.js, contact.js (wa.me/tel/mailto), format.js,
                   labels.js (enums), validation.js (phone/email), usePageTitle.js
-  pages/          Login, Register, Dashboard, Clients, ComingSoon
+  pages/          Login, Register, Dashboard, Clients, Vendors, ComingSoon
   App.jsx         routes and the guarded-page helper
   index.css       Tailwind layers, focus, selection, motion
   main.jsx        React root
@@ -153,9 +156,38 @@ links, next event, notes (three lines) and one-tap WhatsApp / Call / Email.
   screen below `sm`. The form mirrors the server rules in `lib/validation.js`.
 - **Delete** uses `ConfirmDialog`, never `window.confirm`. The API returns `409`
   when the client still has events; that message is shown inside the dialog.
-  A booked client with no events can be deleted, with a warning.
+  A booked client with no events can be deleted, with a warning. While the client
+  has events (or after a refused delete) the confirm button is disabled and the
+  only way out is **Close**.
 - Search is debounced 300 ms. Status chips, sort and pagination reset to page 1
   on change. Nine cards per page, Previous/Next at the bottom.
+
+## Vendors screen
+
+`/vendors` is the same card grid as `/clients`, sorted A–Z, nine per page. A card
+shows the service badges (first two, then `+n`), name, phone / email / website
+links, address, how many events the vendor is on, notes (three lines) and the
+same WhatsApp / Call / Email buttons.
+
+- **Services come from the server.** `GET /meta/vendor-categories` is fetched once
+  per visit and shared by the filter, the form and the card badges, so a renamed
+  category only changes `server/src/config/vendorCatalog.js`.
+- The form uses `MultiSelectChips` for services; everything else is a shared
+  primitive. Only the name is required, and phone / email / website are validated
+  when filled in.
+- **Delete** uses `ConfirmDialog`. The API answers `409` while the vendor is
+  assigned to an event, and that message is shown inside the dialog. Each list row
+  carries `assignmentCount`, so the warning appears before the request is sent.
+  When the vendor is in use the confirm button is disabled and only **Close**
+  remains, so nobody can repeat the same failed delete.
+
+## Phone entry
+
+`ui/PhoneField` is the only phone input. It shows a fixed `+91` box and one
+national input capped at ten digits, and it hands the form
+`{ target: { name, value } }` with the digits already cleaned. `lib/validation.js`
+exports `nationalFromPhone` (edit prefill) and `toE164` (save payload), so a form
+never juggles the country code itself. The server still stores one E.164 string.
 
 ## Conventions
 
@@ -234,7 +266,7 @@ shown on the email input, not in the form banner.
 | `/dashboard` | Built | `GET /dashboard/summary`, `POST /actions/regenerate`, `PATCH /actions/:id` |
 | `/actions` | Holding screen | `GET /actions` |
 | `/clients` | Built | `GET /clients` (search, status, sort, page), `POST /clients`, `PUT /clients/:id`, `DELETE /clients/:id` |
-| `/vendors` | Holding screen | `GET /vendors` |
+| `/vendors` | Built | `GET /vendors` (search, category, page), `POST /vendors`, `PUT /vendors/:id`, `DELETE /vendors/:id`, `GET /meta/vendor-categories` |
 | `/events` | Holding screen | `GET /events` |
 | `/events/:id` | Holding screen | `GET /events/:id` |
 | `/settings` | Holding screen | `GET /profile` |
