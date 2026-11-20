@@ -10,6 +10,11 @@ const eventSchema = new mongoose.Schema({
   surpriseFor: { type: String, trim: true, default: '', maxlength: 120 },
   status: { type: String, enum: EVENT_STATUSES, default: 'inquiry' },
   startAt: { type: Date, required: true },
+  // Optional: not every event has a physical venue (virtual or client's office).
+  venue: {
+    name: { type: String, trim: true, default: '', maxlength: 120 },
+    address: { type: String, trim: true, default: '', maxlength: 300 }
+  },
   budget: {
     amount: { type: Number, min: 0, default: 0 },
     spent: { type: Number, min: 0, default: 0 },

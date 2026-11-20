@@ -3,9 +3,11 @@
 The planner-facing React app. This folder is being rebuilt from scratch on the
 `frontend-v2` branch. The old client is preserved in git history.
 
-**Current state:** login, registration, the dashboard plus the clients and vendors
-card screens are built. `/events`, `/events/:id`, `/actions` and `/settings`
-render a holding screen inside the app shell. Unknown routes redirect home.
+**Current state:** login, registration, the dashboard plus the clients, vendors and
+events card screens are built. `/events/:id`, `/actions` and `/settings` render a
+holding screen inside the app shell. The events list is read-only for now; the
+event form and detail screen arrive in the next part. Unknown routes redirect
+home.
 
 ## Stack
 
@@ -102,26 +104,29 @@ Fraunces (display) and Inter (UI) load from Google Fonts in `index.html` with
 ```text
 client/src/
   api/            axios.js (instance + token + 401), auth.js, clients.js,
-                  vendors.js, meta.js, dashboard.js, actions.js
+                  vendors.js, meta.js, dashboard.js, actions.js, events.js
   components/
     auth/         AuthPanel (shared dark panel for login and register)
     clients/      ClientCard, ClientStatusPill, ClientForm, ClientsToolbar,
                   ClientsSkeleton, ClientsEmpty
     vendors/      VendorCard, VendorForm, VendorsToolbar, VendorsSkeleton,
                   VendorsEmpty
+    events/       EventSpotlight, EventsTimeline, EventRow, EventsToolbar,
+                  EventsSkeleton, EventsEmpty
     dashboard/    StatCard, NextEvents, ActionFeed, BudgetPanel, PipelinePanel,
                   DashboardSkeleton, EmptyWorkspace
     layout/       AppShell (sidebar, mobile header and tab bar)
     ui/           Button, TextField, PasswordField, PhoneField, Select, Textarea,
                   Badge, Panel, Skeleton, Drawer, ConfirmDialog, Toast,
-                  FilterChips, MultiSelectChips
+                  FilterChips, ChoiceFilter, MultiSelectChips
     BrandMark, FullScreenLoader, ProtectedRoute
   context/        AuthContext.jsx (token, user, login, register, logout)
   hooks/          useDashboardSummary.js, useClients.js, useVendors.js,
-                  useDebouncedValue.js, useToast.js
+                  useEvents.js, useDebouncedValue.js, useToast.js
   lib/            apiError.js, contact.js (wa.me/tel/mailto), format.js,
+                  events.js (countdown, month grouping, progress),
                   labels.js (enums), validation.js (phone/email), usePageTitle.js
-  pages/          Login, Register, Dashboard, Clients, Vendors, ComingSoon
+  pages/          Login, Register, Dashboard, Clients, Vendors, Events, ComingSoon
   App.jsx         routes and the guarded-page helper
   index.css       Tailwind layers, focus, selection, motion
   main.jsx        React root
@@ -159,8 +164,17 @@ links, next event, notes (three lines) and one-tap WhatsApp / Call / Email.
   A booked client with no events can be deleted, with a warning. While the client
   has events (or after a refused delete) the confirm button is disabled and the
   only way out is **Close**.
-- Search is debounced 300 ms. Status chips, sort and pagination reset to page 1
-  on change. Nine cards per page, Previous/Next at the bottom.
+- Search is debounced 300 ms. The status filter, sort and pagination reset to
+  page 1 on change. Nine cards per page, Previous/Next at the bottom.
+
+### Filters on a phone
+
+`ui/ChoiceFilter` shows the filter as pills from `sm` up and as the same native
+`<select>` below it. Only the branch that is visible is in the tab order, so a
+phone spends one compact row on filters instead of two wrapped chip rows, and
+the first cards (or the next-event spotlight) are visible without scrolling.
+Clients, Vendors and Events all use it; add it to a new list screen instead of
+putting `FilterChips` on a phone.
 
 ## Vendors screen
 
@@ -180,6 +194,31 @@ same WhatsApp / Call / Email buttons.
   carries `assignmentCount`, so the warning appears before the request is sent.
   When the vendor is in use the confirm button is disabled and only **Close**
   remains, so nobody can repeat the same failed delete.
+
+## Events screen
+
+`/events` is the calendar, not another card grid. It is built in two passes: this
+list is read-only, and the event form plus detail screen come next.
+
+- **Next event spotlight** — the soonest active event from today, on the ink
+  panel with a serif countdown, its client, task progress and budget. It is the
+  screen's one authored entrance and one brand moment.
+- **Month timeline** — one raised sheet per month, each row a date block, title,
+  client · event type, status pill, task progress and budget. The server returns
+  the list already sorted (upcoming soonest first, past and all newest first), so
+  the client only inserts the month headings.
+- **Toolbar** — debounced search over the event and client name, a status filter,
+  and an Upcoming / Past / All dates scope. On a phone both filters are native
+  selects (see *Filters on a phone* above); from `sm` up they are chip rows.
+  Every change resets to fresh results; old rows are cleared so stale data is
+  never read as the new filter.
+- **Four empty states**, each with its own next action: no matches (clear the
+  filters), nothing upcoming (show the archive), no past events (show upcoming),
+  and a brand-new calendar (go to clients, because an event needs a client).
+- Search, status and scope are server filters (`GET /events?search=&status=&scope=`)
+  so the browser never downloads the whole archive.
+- The event name, client, status, progress and budget all come from the list
+  response; the row never fetches on hover.
 
 ## Phone entry
 
@@ -267,7 +306,7 @@ shown on the email input, not in the form banner.
 | `/actions` | Holding screen | `GET /actions` |
 | `/clients` | Built | `GET /clients` (search, status, sort, page), `POST /clients`, `PUT /clients/:id`, `DELETE /clients/:id` |
 | `/vendors` | Built | `GET /vendors` (search, category, page), `POST /vendors`, `PUT /vendors/:id`, `DELETE /vendors/:id`, `GET /meta/vendor-categories` |
-| `/events` | Holding screen | `GET /events` |
+| `/events` | Built (list) | `GET /events` (search, status, scope) |
 | `/events/:id` | Holding screen | `GET /events/:id` |
 | `/settings` | Holding screen | `GET /profile` |
 

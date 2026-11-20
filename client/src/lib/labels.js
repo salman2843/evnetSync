@@ -9,6 +9,9 @@ export const EVENT_STATUS = {
   cancelled: { label: 'Cancelled', tone: 'danger' }
 };
 
+// The order filters and pickers show the statuses in.
+export const EVENT_STATUS_ORDER = ['inquiry', 'planning', 'confirmed', 'completed', 'cancelled'];
+
 export const EVENT_TYPES = {
   conference: 'Conference',
   trade_show: 'Trade show',

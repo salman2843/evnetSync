@@ -5,6 +5,7 @@ import EventVendor from '../models/EventVendor.js';
 import Task from '../models/Task.js';
 import { eventTypeGroups, festivalSubtypeIds } from '../config/eventTypeCatalog.js';
 import { duplicateEventForUser } from '../services/eventService.js';
+import { buildTasksForEvent } from '../services/taskTemplateService.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { sendCreated, sendError, sendSuccess } from '../utils/apiResponse.js';
 import {
@@ -12,6 +13,7 @@ import {
   EVENT_STATUSES,
   TASK_PRIORITIES,
   TASK_STATUSES,
+  escapeRegex,
   isValidId
 } from '../utils/validation.js';
 import { paginationMeta, parsePagination } from '../utils/pagination.js';
@@ -19,7 +21,7 @@ import { paginationMeta, parsePagination } from '../utils/pagination.js';
 const eventTypeIds = new Set(eventTypeGroups.flatMap((group) => group.types.map((type) => type.id)));
 const festivalTypes = new Set(festivalSubtypeIds);
 const currencies = new Set(CURRENCIES);
-const editableFields = ['clientId', 'title', 'eventTypeId', 'subEventTypeId', 'surpriseFor', 'status', 'startAt', 'budget', 'notes'];
+const editableFields = ['clientId', 'title', 'eventTypeId', 'subEventTypeId', 'surpriseFor', 'status', 'startAt', 'venue', 'budget', 'notes'];
 
 function inputFields(body) {
   const fields = {};
@@ -73,6 +75,18 @@ function validateEventFields(fields, { creating = false, currentEventTypeId = ''
     fields.budget = { amount, spent, currency };
   }
 
+  // Venue is optional. When sent, keep only the two text fields so nothing else
+  // can be stored on the nested object.
+  if (fields.venue !== undefined) {
+    const venue = fields.venue;
+    if (!venue || typeof venue !== 'object' || Array.isArray(venue)) return 'Enter a valid venue';
+    const name = typeof venue.name === 'string' ? venue.name.trim() : '';
+    const address = typeof venue.address === 'string' ? venue.address.trim() : '';
+    if (name.length > 120) return 'Venue name must be 120 characters or fewer';
+    if (address.length > 300) return 'Venue address must be 300 characters or fewer';
+    fields.venue = { name, address };
+  }
+
   if (fields.notes !== undefined && typeof fields.notes !== 'string') return 'Notes must be text';
   if (fields.surpriseFor !== undefined && typeof fields.surpriseFor !== 'string') return 'Surprise name must be text';
   return null;
@@ -104,6 +118,11 @@ export const listEvents = asyncHandler(async (req, res) => {
     return sendError(res, 'Choose a valid event status filter');
   }
 
+  const scope = req.query.scope || 'all';
+  if (!['upcoming', 'past', 'all'].includes(scope)) {
+    return sendError(res, 'Choose a valid event scope filter');
+  }
+
   const filter = { userId: req.user._id };
   if (req.query.status) filter.status = req.query.status;
   // The client card and the future client detail screen need one client's
@@ -113,11 +132,30 @@ export const listEvents = asyncHandler(async (req, res) => {
     filter.clientId = req.query.clientId;
   }
 
+  // Scope splits the calendar at local midnight, so "today" means today for the
+  // planner. An archive (past) reads newest first; upcoming reads soonest first.
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  if (scope === 'upcoming') filter.startAt = { $gte: todayStart };
+  if (scope === 'past') filter.startAt = { $lt: todayStart };
+
+  // Search covers the event name and the client's name in one box.
+  const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
+  if (search) {
+    const pattern = new RegExp(escapeRegex(search), 'i');
+    const clients = await Client.find({ userId: req.user._id, name: pattern }).select('_id').lean();
+    filter.$or = [
+      { title: pattern },
+      { clientId: { $in: clients.map((client) => client._id) } }
+    ];
+  }
+
   const page = parsePagination(req.query);
+  const sortDirection = scope === 'upcoming' ? 1 : -1;
 
   const eventsQuery = Event.find(filter)
     .populate('clientId', 'name')
-    .sort({ startAt: 1, createdAt: -1 });
+    .sort({ startAt: sortDirection, createdAt: -1 });
   if (page) eventsQuery.skip(page.skip).limit(page.limit);
 
   const [events, total] = await Promise.all([
@@ -151,6 +189,38 @@ export const getEvent = asyncHandler(async (req, res) => {
 
   const tasks = await Task.find({ eventId: event._id, userId: req.user._id }).lean();
   return sendSuccess(res, { event, tasks: sortTasks(tasks) }, 'Event details loaded successfully');
+});
+
+// Adds the suggested checklist to an existing event. Titles already on the
+// event are skipped, so a planner can click this twice without duplicates and
+// can restore steps they deleted.
+export const addSuggestedTasks = asyncHandler(async (req, res) => {
+  if (!isValidId(req.params.id)) return sendError(res, 'Invalid event ID');
+
+  const event = await Event.findOne({ _id: req.params.id, userId: req.user._id });
+  if (!event) return sendError(res, 'Event not found', 404);
+
+  const existing = await Task.find({ eventId: event._id, userId: req.user._id })
+    .select('title')
+    .lean();
+  const takenTitles = new Set(existing.map((task) => task.title.trim().toLowerCase()));
+
+  const drafts = buildTasksForEvent(event).filter(
+    (draft) => !takenTitles.has(draft.title.trim().toLowerCase())
+  );
+
+  const tasks = drafts.length
+    ? await Task.insertMany(drafts.map((draft) => ({
+        ...draft,
+        userId: req.user._id,
+        eventId: event._id
+      })))
+    : [];
+
+  const message = tasks.length
+    ? `Added ${tasks.length} suggested tasks`
+    : 'The suggested checklist is already in place';
+  return sendCreated(res, { tasks }, message);
 });
 
 export const createTask = asyncHandler(async (req, res) => {
@@ -242,13 +312,31 @@ export const createEvent = asyncHandler(async (req, res) => {
   const validationMessage = validateEventFields(values, { creating: true });
   if (validationMessage) return sendError(res, validationMessage);
 
+  // Suggested tasks are on by default; a planner can opt out and build the
+  // checklist later from the event screen.
+  const generateTasks = req.body.generateTasks === undefined ? true : req.body.generateTasks;
+  if (typeof generateTasks !== 'boolean') return sendError(res, 'generateTasks must be true or false');
+
   if (!await ownsClient(values.clientId, req.user._id)) {
     return sendError(res, 'Choose one of your clients');
   }
 
   const event = await Event.create({ ...values, userId: req.user._id });
+
+  const drafts = generateTasks ? buildTasksForEvent(event) : [];
+  const tasks = drafts.length
+    ? await Task.insertMany(drafts.map((draft) => ({
+        ...draft,
+        userId: req.user._id,
+        eventId: event._id
+      })))
+    : [];
+
   await event.populate('clientId', 'name');
-  return sendCreated(res, { event }, 'Event created successfully');
+  const message = tasks.length
+    ? `Event created with ${tasks.length} suggested tasks`
+    : 'Event created successfully';
+  return sendCreated(res, { event, tasks }, message);
 });
 
 export const updateEvent = asyncHandler(async (req, res) => {

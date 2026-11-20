@@ -290,7 +290,8 @@ describe('list pagination', () => {
 
     assert.equal(res.status, 200);
     assert.equal(res.body.data.events.length, 1);
-    assert.equal(res.body.data.events[0].title, 'Event 5');
+    // The default archive order is newest first, so the last page is Event 1.
+    assert.equal(res.body.data.events[0].title, 'Event 1');
     assert.deepEqual(res.body.data.events[0].taskSummary, { total: 0, completed: 0 });
     assert.deepEqual(res.body.data.pagination, { page: 3, limit: 2, total: 5, pages: 3 });
   });
