@@ -19,14 +19,31 @@ export const EVENT_TYPES = {
   seminar: 'Seminar',
   awards_night: 'Awards night',
   team_building_retreat: 'Team-building retreat',
+  corporate_offsite: 'Corporate offsite',
+  board_meeting: 'Board meeting',
+  gala_dinner: 'Gala dinner',
+  hackathon: 'Hackathon',
+  job_fair: 'Job fair',
+  annual_day: 'Annual day',
   wedding: 'Wedding',
   milestone_birthday: 'Milestone birthday',
   engagement_party: 'Engagement party',
+  anniversary: 'Anniversary',
   naming_ceremony: 'Naming ceremony',
+  baby_shower: 'Baby shower',
+  housewarming: 'Housewarming',
+  retirement_party: 'Retirement party',
+  reunion: 'Reunion',
+  religious_ceremony: 'Religious ceremony',
   concert: 'Concert',
   festival: 'Festival',
+  exhibition: 'Exhibition',
   community_fundraiser: 'Community fundraiser',
-  press_conference: 'Press conference'
+  press_conference: 'Press conference',
+  sports_event: 'Sports event',
+  marathon: 'Marathon',
+  cultural_program: 'Cultural programme',
+  other: 'Other'
 };
 
 export const ACTION_PRIORITY = {
@@ -61,6 +78,9 @@ export function clientStatus(status) {
   return CLIENT_STATUS[status] || { label: status || 'Unknown', tone: 'neutral' };
 }
 
-export function eventTypeLabel(eventTypeId) {
+// "Other" events carry the planner's own label; everything else reads from the
+// catalog above.
+export function eventTypeLabel(eventTypeId, customEventType = '') {
+  if (eventTypeId === 'other') return customEventType || 'Other';
   return EVENT_TYPES[eventTypeId] || 'Event';
 }

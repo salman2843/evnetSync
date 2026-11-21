@@ -39,7 +39,7 @@ export default function EventSpotlight({ event }) {
               {event.title}
             </h2>
             <p className="mt-1 text-[0.88rem] text-onInk-muted">
-              {[event.clientId?.name, eventTypeLabel(event.eventTypeId)]
+              {[event.clientId?.name, eventTypeLabel(event.eventTypeId, event.customEventType)]
                 .filter(Boolean)
                 .join(' · ')}
             </p>

@@ -1,7 +1,10 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CalendarDays, Search } from 'lucide-react';
+import { CalendarDays, Plus, Search } from 'lucide-react';
 import Button from '../components/ui/Button.jsx';
+import Drawer from '../components/ui/Drawer.jsx';
+import Toast from '../components/ui/Toast.jsx';
+import EventForm from '../components/events/EventForm.jsx';
 import EventsEmpty from '../components/events/EventsEmpty.jsx';
 import EventsSkeleton from '../components/events/EventsSkeleton.jsx';
 import EventsTimeline from '../components/events/EventsTimeline.jsx';
@@ -9,6 +12,7 @@ import EventsToolbar from '../components/events/EventsToolbar.jsx';
 import EventSpotlight from '../components/events/EventSpotlight.jsx';
 import useDebouncedValue from '../hooks/useDebouncedValue.js';
 import useEvents from '../hooks/useEvents.js';
+import useToast from '../hooks/useToast.js';
 import { nextUpcomingEvent } from '../lib/events.js';
 import usePageTitle from '../lib/usePageTitle.js';
 
@@ -19,9 +23,11 @@ export default function Events() {
   const [searchInput, setSearchInput] = useState('');
   const [status, setStatus] = useState('');
   const [scope, setScope] = useState('upcoming');
+  const [formOpen, setFormOpen] = useState(false);
   const search = useDebouncedValue(searchInput.trim(), 300);
 
   const { events, loading, error, reload } = useEvents({ search, status, scope });
+  const { notice, notify } = useToast();
   const spotlight = useMemo(() => nextUpcomingEvent(events), [events]);
 
   const filtersActive = Boolean(search) || Boolean(status);
@@ -29,6 +35,15 @@ export default function Events() {
   function clearFilters() {
     setSearchInput('');
     setStatus('');
+  }
+
+  // The new event opens on its own screen so the planner can check the generated
+  // checklist straight away.
+  function handleSaved(result) {
+    setFormOpen(false);
+    const suggested = result.tasks?.length || 0;
+    notify(suggested ? `Event created with ${suggested} suggested tasks.` : 'Event created.');
+    navigate(`/events/${result.event._id}`);
   }
 
   // The calendar can be empty for four different reasons, so each gets its own
@@ -72,16 +87,24 @@ export default function Events() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <p className="text-[0.72rem] font-medium uppercase tracking-[0.14em] text-muted">
-          The calendar
-        </p>
-        <h1 className="mt-2 font-display text-[2.1rem] leading-[1.08] tracking-[-0.02em] text-ink sm:text-[2.4rem]">
-          Events
-        </h1>
-        <p className="mt-2 max-w-[52ch] text-[0.92rem] leading-relaxed text-muted">
-          Every date on the books, from first inquiry to the final run sheet.
-        </p>
+      <Toast text={notice.text} tone={notice.tone} />
+
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-[0.72rem] font-medium uppercase tracking-[0.14em] text-muted">
+            The calendar
+          </p>
+          <h1 className="mt-2 font-display text-[2.1rem] leading-[1.08] tracking-[-0.02em] text-ink sm:text-[2.4rem]">
+            Events
+          </h1>
+          <p className="mt-2 max-w-[52ch] text-[0.92rem] leading-relaxed text-muted">
+            Every date on the books, from first inquiry to the final run sheet.
+          </p>
+        </div>
+        <Button onClick={() => setFormOpen(true)}>
+          <Plus size={16} aria-hidden="true" />
+          New event
+        </Button>
       </header>
 
       <EventsToolbar
@@ -119,6 +142,16 @@ export default function Events() {
           <EventsTimeline events={events} />
         </>
       )}
+
+      <Drawer
+        open={formOpen}
+        onClose={() => setFormOpen(false)}
+        title="New event"
+        description="Pick the client, date and type. The suggested checklist can be added with it."
+        bodyClassName="min-h-0 flex-1 overflow-hidden p-0"
+      >
+        <EventForm onSaved={handleSaved} onCancel={() => setFormOpen(false)} />
+      </Drawer>
     </div>
   );
 }

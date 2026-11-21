@@ -102,6 +102,7 @@ export async function getDashboardSummary(userId) {
         status: event.status,
         startAt: event.startAt,
         eventTypeId: event.eventTypeId,
+        customEventType: event.customEventType,
         client: event.clientId ? { _id: event.clientId._id, name: event.clientId.name, phone: event.clientId.phone } : null
       }))
     },

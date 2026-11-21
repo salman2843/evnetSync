@@ -36,6 +36,19 @@ export function formatEventDate(value) {
   }).format(new Date(value));
 }
 
+// The detail screen shows the start time too, because "2 Dec" is not enough
+// when the run sheet starts in the morning.
+export function formatEventDateTime(value) {
+  return new Intl.DateTimeFormat('en-GB', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit'
+  }).format(new Date(value));
+}
+
 export function formatShortDate(value) {
   return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' }).format(new Date(value));
 }

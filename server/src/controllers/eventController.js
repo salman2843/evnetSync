@@ -3,7 +3,7 @@ import Client from '../models/Client.js';
 import Event from '../models/Event.js';
 import EventVendor from '../models/EventVendor.js';
 import Task from '../models/Task.js';
-import { eventTypeGroups, festivalSubtypeIds } from '../config/eventTypeCatalog.js';
+import { eventTypeGroups, isValidSubtype } from '../config/eventTypeCatalog.js';
 import { duplicateEventForUser } from '../services/eventService.js';
 import { buildTasksForEvent } from '../services/taskTemplateService.js';
 import asyncHandler from '../utils/asyncHandler.js';
@@ -19,9 +19,20 @@ import {
 import { paginationMeta, parsePagination } from '../utils/pagination.js';
 
 const eventTypeIds = new Set(eventTypeGroups.flatMap((group) => group.types.map((type) => type.id)));
-const festivalTypes = new Set(festivalSubtypeIds);
 const currencies = new Set(CURRENCIES);
-const editableFields = ['clientId', 'title', 'eventTypeId', 'subEventTypeId', 'surpriseFor', 'status', 'startAt', 'venue', 'budget', 'notes'];
+const editableFields = [
+  'clientId',
+  'title',
+  'eventTypeId',
+  'customEventType',
+  'subEventTypeId',
+  'surpriseFor',
+  'status',
+  'startAt',
+  'venue',
+  'budget',
+  'notes'
+];
 
 function inputFields(body) {
   const fields = {};
@@ -32,9 +43,13 @@ function inputFields(body) {
   return fields;
 }
 
-// Validates event input. `currentEventTypeId` lets a partial update check the
-// festival sub-type against the type already stored on the event.
-function validateEventFields(fields, { creating = false, currentEventTypeId = '' } = {}) {
+// Validates event input. `currentEventTypeId` and `currentStartAt` let a partial
+// update check the sub-type against the stored type, and let an event that has
+// already happened keep its date when the planner edits something else.
+function validateEventFields(
+  fields,
+  { creating = false, currentEventTypeId = '', currentStartAt = null } = {}
+) {
   if ((creating || fields.clientId !== undefined) && !isValidId(fields.clientId)) return 'Choose a client';
 
   if (creating || fields.title !== undefined) {
@@ -45,10 +60,33 @@ function validateEventFields(fields, { creating = false, currentEventTypeId = ''
     return 'Choose a valid event type';
   }
 
+  const effectiveType = fields.eventTypeId || currentEventTypeId;
+
+  // A sub-type only exists for some types (a wedding's mehndi, a festival's
+  // Diwali), so it is checked against the type that will be stored.
   if (fields.subEventTypeId !== undefined && fields.subEventTypeId) {
-    if (!festivalTypes.has(fields.subEventTypeId)) return 'Choose a valid festival type';
-    const effectiveType = fields.eventTypeId || currentEventTypeId;
-    if (effectiveType !== 'festival') return 'Festival type only applies to festival events';
+    if (!isValidSubtype(effectiveType, fields.subEventTypeId)) {
+      return 'Choose a valid sub-type for this event type';
+    }
+  }
+
+  // "Other" needs a name so the calendar never shows a blank event type.
+  if (fields.customEventType !== undefined) {
+    if (typeof fields.customEventType !== 'string') return 'Event type name must be text';
+    fields.customEventType = fields.customEventType.trim();
+    if (fields.customEventType.length > 80) {
+      return 'Event type name must be 80 characters or fewer';
+    }
+  }
+  if (effectiveType === 'other') {
+    // Required on create, when moving to Other, or when the name is sent. An
+    // unrelated edit keeps the stored name.
+    const needsName =
+      creating || fields.eventTypeId !== undefined || fields.customEventType !== undefined;
+    if (needsName && !fields.customEventType) return 'Type the event type name';
+  } else if (fields.customEventType) {
+    // The custom name belongs to Other only.
+    fields.customEventType = '';
   }
 
   if (fields.status !== undefined && !EVENT_STATUSES.includes(fields.status)) return 'Choose a valid event status';
@@ -60,6 +98,16 @@ function validateEventFields(fields, { creating = false, currentEventTypeId = ''
     const date = new Date(fields.startAt);
     if (Number.isNaN(date.getTime())) return 'Enter a valid event date';
     fields.startAt = date;
+
+    // New events must start in the future. On update, an event that already
+    // happened may keep its date, but it cannot be moved to a different past
+    // date. The minute of tolerance absorbs the seconds a form drops.
+    const oneMinuteAgo = Date.now() - 60 * 1000;
+    if (date.getTime() < oneMinuteAgo) {
+      const stored = currentStartAt ? new Date(currentStartAt).getTime() : NaN;
+      const unchanged = Number.isFinite(stored) && Math.abs(date.getTime() - stored) < 60 * 1000;
+      if (creating || !unchanged) return 'Choose today or a later date';
+    }
   }
 
   if (fields.budget !== undefined) {
@@ -358,7 +406,10 @@ export const updateEvent = asyncHandler(async (req, res) => {
     };
   }
 
-  const validationMessage = validateEventFields(values, { currentEventTypeId: existing.eventTypeId });
+  const validationMessage = validateEventFields(values, {
+    currentEventTypeId: existing.eventTypeId,
+    currentStartAt: existing.startAt
+  });
   if (validationMessage) return sendError(res, validationMessage);
   if (!Object.keys(values).length) return sendError(res, 'Provide at least one field to update');
 
@@ -366,9 +417,13 @@ export const updateEvent = asyncHandler(async (req, res) => {
     return sendError(res, 'Choose one of your clients');
   }
 
-  // Leaving the festival type clears any festival sub-type still stored.
-  if (values.eventTypeId && values.eventTypeId !== 'festival' && values.subEventTypeId === undefined) {
-    values.subEventTypeId = '';
+  // Changing type clears choices that belonged to the old one, so a wedding
+  // never keeps a festival's Diwali or a custom "Other" label.
+  if (values.eventTypeId && values.eventTypeId !== existing.eventTypeId) {
+    if (values.subEventTypeId === undefined) values.subEventTypeId = '';
+    if (values.eventTypeId !== 'other' && values.customEventType === undefined) {
+      values.customEventType = '';
+    }
   }
 
   const event = await Event.findByIdAndUpdate(

@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import request from 'supertest';
 import app from '../app.js';
 import Client from '../src/models/Client.js';
+import Event from '../src/models/Event.js';
 import { clearDb, startDb, stopDb } from './helpers/db.js';
 import { createPlanner } from './helpers/planner.js';
 
@@ -40,7 +41,7 @@ describe('events and tasks', () => {
         clientId,
         title: 'Diwali Celebration',
         eventTypeId: 'festival',
-        startAt: '2026-11-08T10:00:00.000Z',
+        startAt: daysFromNow(20),
         // Task tests build their own list; skip the suggested checklist.
         generateTasks: false
       });
@@ -69,7 +70,7 @@ describe('events and tasks', () => {
       .send({ eventTypeId: 'wedding', subEventTypeId: 'diwali' });
 
     assert.equal(res.status, 400);
-    assert.match(res.body.message, /festival/i);
+    assert.match(res.body.message, /sub-type/i);
   });
 
   test('clears the sub-type when the event stops being a festival', async () => {
@@ -82,6 +83,110 @@ describe('events and tasks', () => {
 
     assert.equal(res.status, 200);
     assert.equal(res.body.data.event.subEventTypeId, '');
+  });
+
+  test('accepts a wedding function as a sub-type', async () => {
+    const res = await request(app)
+      .post('/api/events')
+      .set(auth(token))
+      .send({
+        clientId,
+        title: 'Mehndi Evening',
+        eventTypeId: 'wedding',
+        subEventTypeId: 'mehndi',
+        startAt: daysFromNow(30),
+        generateTasks: false
+      });
+
+    assert.equal(res.status, 201);
+    assert.equal(res.body.data.event.subEventTypeId, 'mehndi');
+  });
+
+  test('requires a name when the event type is Other', async () => {
+    const missing = await request(app)
+      .post('/api/events')
+      .set(auth(token))
+      .send({
+        clientId,
+        title: 'Alumni meet',
+        eventTypeId: 'other',
+        startAt: daysFromNow(30),
+        generateTasks: false
+      });
+
+    assert.equal(missing.status, 400);
+    assert.match(missing.body.message, /type the event type name/i);
+
+    const created = await request(app)
+      .post('/api/events')
+      .set(auth(token))
+      .send({
+        clientId,
+        title: 'Alumni meet',
+        eventTypeId: 'other',
+        customEventType: '  Alumni meet  ',
+        startAt: daysFromNow(30),
+        generateTasks: false
+      });
+
+    assert.equal(created.status, 201);
+    assert.equal(created.body.data.event.customEventType, 'Alumni meet');
+
+    const copy = await request(app)
+      .post(`/api/events/${created.body.data.event._id}/duplicate`)
+      .set(auth(token));
+    assert.equal(copy.status, 201);
+    assert.equal(copy.body.data.event.customEventType, 'Alumni meet');
+
+    const cleared = await request(app)
+      .put(`/api/events/${created.body.data.event._id}`)
+      .set(auth(token))
+      .send({ eventTypeId: 'conference' });
+
+    assert.equal(cleared.status, 200);
+    assert.equal(cleared.body.data.event.customEventType, '');
+  });
+
+  test('rejects an event date in the past', async () => {
+    const res = await request(app)
+      .post('/api/events')
+      .set(auth(token))
+      .send({
+        clientId,
+        title: 'Yesterday',
+        eventTypeId: 'conference',
+        startAt: daysFromNow(-1),
+        generateTasks: false
+      });
+
+    assert.equal(res.status, 400);
+    assert.match(res.body.message, /today or a later date/i);
+  });
+
+  test('lets a past event keep its date but not move to another past date', async () => {
+    const event = await Event.create({
+      userId,
+      clientId,
+      title: 'Last year',
+      eventTypeId: 'conference',
+      startAt: daysFromNow(-30)
+    });
+
+    const kept = await request(app)
+      .put(`/api/events/${event._id}`)
+      .set(auth(token))
+      .send({ startAt: event.startAt.toISOString(), notes: 'Closed out' });
+
+    assert.equal(kept.status, 200);
+    assert.equal(kept.body.data.event.notes, 'Closed out');
+
+    const moved = await request(app)
+      .put(`/api/events/${event._id}`)
+      .set(auth(token))
+      .send({ startAt: daysFromNow(-5) });
+
+    assert.equal(moved.status, 400);
+    assert.match(moved.body.message, /today or a later date/i);
   });
 
   test('keeps the existing budget when only one budget value is sent', async () => {
@@ -349,19 +454,27 @@ describe('events and tasks', () => {
   });
 
   test('splits the list into upcoming and past events', async () => {
-    for (const [title, days] of [['Future Gala', 10], ['Old Gala', -10]]) {
-      const res = await request(app)
-        .post('/api/events')
-        .set(auth(token))
-        .send({
-          clientId,
-          title,
-          eventTypeId: 'community_fundraiser',
-          startAt: daysFromNow(days),
-          generateTasks: false
-        });
-      assert.equal(res.status, 201);
-    }
+    const future = await request(app)
+      .post('/api/events')
+      .set(auth(token))
+      .send({
+        clientId,
+        title: 'Future Gala',
+        eventTypeId: 'community_fundraiser',
+        startAt: daysFromNow(10),
+        generateTasks: false
+      });
+    assert.equal(future.status, 201);
+
+    // The API refuses a past date on create, so the archive fixture is seeded
+    // directly, the way an event becomes past simply by the clock moving.
+    await Event.create({
+      userId,
+      clientId,
+      title: 'Old Gala',
+      eventTypeId: 'community_fundraiser',
+      startAt: daysFromNow(-10)
+    });
 
     const upcoming = await request(app).get('/api/events?scope=upcoming').set(auth(token));
     assert.equal(upcoming.status, 200);

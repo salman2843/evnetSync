@@ -6,6 +6,9 @@ const eventSchema = new mongoose.Schema({
   clientId: { type: mongoose.Schema.Types.ObjectId, ref: 'Client', required: true },
   title: { type: String, required: true, trim: true, maxlength: 120 },
   eventTypeId: { type: String, required: true, trim: true },
+  // Only used when eventTypeId is 'other', so the calendar never shows a
+  // nameless type for a planner's own label.
+  customEventType: { type: String, trim: true, default: '', maxlength: 80 },
   subEventTypeId: { type: String, trim: true, default: '' },
   surpriseFor: { type: String, trim: true, default: '', maxlength: 120 },
   status: { type: String, enum: EVENT_STATUSES, default: 'inquiry' },

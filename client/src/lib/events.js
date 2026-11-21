@@ -64,6 +64,22 @@ export function budgetProgress(event) {
     spent,
     currency: event.budget?.currency || 'INR',
     percent: amount ? Math.min(100, Math.round((spent / amount) * 100)) : 0,
-    remaining: Math.max(amount - spent, 0)
+    remaining: Math.max(amount - spent, 0),
+    // Anything above the planned total. The overview shows it in red so an
+    // overrun is not mistaken for money still available.
+    over: Math.max(spent - amount, 0)
   };
+}
+
+// <input type="datetime-local"> wants the planner's local wall-clock time, not
+// the ISO UTC string the API returns.
+export function toDateTimeLocal(value) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const pad = (number) => String(number).padStart(2, '0');
+  return [
+    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`,
+    `${pad(date.getHours())}:${pad(date.getMinutes())}`
+  ].join('T');
 }

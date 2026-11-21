@@ -40,7 +40,7 @@ export default function EventRow({ event }) {
             <div className="min-w-0">
               <p className="truncate text-[0.95rem] font-medium text-ink">{event.title}</p>
               <p className="mt-1 truncate text-[0.83rem] text-muted">
-                {[event.clientId?.name, eventTypeLabel(event.eventTypeId)]
+                {[event.clientId?.name, eventTypeLabel(event.eventTypeId, event.customEventType)]
                   .filter(Boolean)
                   .join(' · ')}
               </p>

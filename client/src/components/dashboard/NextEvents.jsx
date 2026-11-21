@@ -31,7 +31,7 @@ function EventRow({ event }) {
         <div className="min-w-0 flex-1">
           <p className="truncate text-[0.9rem] font-medium text-ink">{event.title}</p>
           <p className="mt-1 truncate text-[0.78rem] text-muted">
-            {event.client?.name || 'No client'} · {eventTypeLabel(event.eventTypeId)}
+            {event.client?.name || 'No client'} · {eventTypeLabel(event.eventTypeId, event.customEventType)}
           </p>
         </div>
 

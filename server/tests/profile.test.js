@@ -193,7 +193,17 @@ describe('profile and media', () => {
     const res = await request(app).get('/api/meta/event-types').set(auth(token));
 
     assert.equal(res.status, 200);
-    assert.equal(res.body.data.groups.length, 3);
+    assert.equal(res.body.data.groups.length, 4);
     assert.ok(res.body.data.festivalSubtypes.some((subtype) => subtype.id === 'diwali'));
+
+    const wedding = res.body.data.groups
+      .flatMap((group) => group.types)
+      .find((type) => type.id === 'wedding');
+    assert.ok(wedding.subtypes.some((subtype) => subtype.id === 'mehndi'));
+
+    const other = res.body.data.groups
+      .flatMap((group) => group.types)
+      .find((type) => type.id === 'other');
+    assert.equal(other.custom, true);
   });
 });

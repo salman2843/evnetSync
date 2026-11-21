@@ -3,11 +3,11 @@
 The planner-facing React app. This folder is being rebuilt from scratch on the
 `frontend-v2` branch. The old client is preserved in git history.
 
-**Current state:** login, registration, the dashboard plus the clients, vendors and
-events card screens are built. `/events/:id`, `/actions` and `/settings` render a
-holding screen inside the app shell. The events list is read-only for now; the
-event form and detail screen arrive in the next part. Unknown routes redirect
-home.
+**Current state:** login, registration, the dashboard, the clients and vendors card
+screens, and the events calendar with its create/edit form and detail overview are
+built. The detail screen's Tasks, Vendors and Actions tabs are placeholders for the
+next part. `/actions` and `/settings` render a holding screen. Unknown routes
+redirect home.
 
 ## Stack
 
@@ -112,7 +112,8 @@ client/src/
     vendors/      VendorCard, VendorForm, VendorsToolbar, VendorsSkeleton,
                   VendorsEmpty
     events/       EventSpotlight, EventsTimeline, EventRow, EventsToolbar,
-                  EventsSkeleton, EventsEmpty
+                  EventsSkeleton, EventsEmpty, EventForm, EventOverview,
+                  EventDetailTabs, EventDetailSkeleton, BudgetUpdateDialog
     dashboard/    StatCard, NextEvents, ActionFeed, BudgetPanel, PipelinePanel,
                   DashboardSkeleton, EmptyWorkspace
     layout/       AppShell (sidebar, mobile header and tab bar)
@@ -122,11 +123,13 @@ client/src/
     BrandMark, FullScreenLoader, ProtectedRoute
   context/        AuthContext.jsx (token, user, login, register, logout)
   hooks/          useDashboardSummary.js, useClients.js, useVendors.js,
-                  useEvents.js, useDebouncedValue.js, useToast.js
+                  useEvents.js, useEvent.js, useDebouncedValue.js, useToast.js
   lib/            apiError.js, contact.js (wa.me/tel/mailto), format.js,
-                  events.js (countdown, month grouping, progress),
-                  labels.js (enums), validation.js (phone/email), usePageTitle.js
-  pages/          Login, Register, Dashboard, Clients, Vendors, Events, ComingSoon
+                  events.js (countdown, month grouping, progress,
+                  datetime-local), labels.js (enums), validation.js
+                  (phone/email), usePageTitle.js
+  pages/          Login, Register, Dashboard, Clients, Vendors, Events,
+                  EventDetail, ComingSoon
   App.jsx         routes and the guarded-page helper
   index.css       Tailwind layers, focus, selection, motion
   main.jsx        React root
@@ -197,8 +200,7 @@ same WhatsApp / Call / Email buttons.
 
 ## Events screen
 
-`/events` is the calendar, not another card grid. It is built in two passes: this
-list is read-only, and the event form plus detail screen come next.
+`/events` is the calendar, not another card grid.
 
 - **Next event spotlight** — the soonest active event from today, on the ink
   panel with a serif countdown, its client, task progress and budget. It is the
@@ -219,6 +221,49 @@ list is read-only, and the event form plus detail screen come next.
   so the browser never downloads the whole archive.
 - The event name, client, status, progress and budget all come from the list
   response; the row never fetches on hover.
+- **New event** opens the shared `Drawer` form. On save the planner lands on the
+  new event, with the suggested checklist already attached.
+
+## Event detail
+
+`/events/:id` opens on the overview with four sticky segmented tabs: Overview,
+Tasks, Vendors and Actions. The tab lives in `?tab=tasks`, so a refresh or the
+back button keeps the section; on a phone the bar sticks under the app header.
+
+- **Overview** — date and time, client, venue, budget (spent, remaining and a
+  bar), checklist progress and notes. Everything comes from `GET /events/:id`.
+- **Update budget** on the overview opens a small dialog: log spend or raise the
+  total, with quick +₹5,000 / +₹10,000 / +₹25,000 chips or a custom amount.
+  Going over budget is allowed but warns before saving and again in the toast;
+  the overview then shows the overrun in red instead of "left".
+- **Edit** reuses `EventForm` in the Drawer. **Duplicate** copies the event, its
+  venue and task list; status resets to inquiry, spent resets to zero and task
+  due dates shift with the new date. **Delete** uses `ConfirmDialog` and returns
+  to the calendar.
+- **Tasks / Vendors / Actions** are placeholders until the next part. The task
+  tab already reports how many steps are attached.
+- A missing event (404) and a failed request get different messages, and both
+  offer the way back.
+
+### Event form
+
+One form for create and edit: client, name, grouped event type, date and time,
+status, optional venue name and address, budget and spent in rupees, and notes.
+On create, **Add the suggested checklist** is on by default and can be switched
+off.
+
+- Event types come from `GET /meta/event-types`. Types with `subtypes` (wedding
+  functions, festivals) get a second picker; **Other** reveals a name field, and
+  that name is what the calendar and detail header show.
+- Past dates are unavailable: the input's `min` is the current minute and the
+  form repeats the server rule. Editing an event that already happened keeps its
+  own date selectable, so fixing its venue does not force a reschedule.
+- Budgets are rupees only, so there is no currency picker; the form sends `INR`.
+- `lib/events.js` owns `toDateTimeLocal`, because `datetime-local` needs local
+  wall-clock time while the API stores ISO.
+- The form repeats the server rules (required client, name, type and future date,
+  a name for Other, non-negative budget) and focuses the first field that needs
+  attention.
 
 ## Phone entry
 
@@ -306,8 +351,8 @@ shown on the email input, not in the form banner.
 | `/actions` | Holding screen | `GET /actions` |
 | `/clients` | Built | `GET /clients` (search, status, sort, page), `POST /clients`, `PUT /clients/:id`, `DELETE /clients/:id` |
 | `/vendors` | Built | `GET /vendors` (search, category, page), `POST /vendors`, `PUT /vendors/:id`, `DELETE /vendors/:id`, `GET /meta/vendor-categories` |
-| `/events` | Built (list) | `GET /events` (search, status, scope) |
-| `/events/:id` | Holding screen | `GET /events/:id` |
+| `/events` | Built | `GET /events` (search, status, scope), `POST /events`, `GET /clients`, `GET /meta/event-types` |
+| `/events/:id` | Built (overview) | `GET /events/:id`, `PUT /events/:id`, `DELETE /events/:id`, `POST /events/:id/duplicate` |
 | `/settings` | Holding screen | `GET /profile` |
 
 Full endpoint list: `server/API.md`.

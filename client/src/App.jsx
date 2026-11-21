@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import ComingSoon from './pages/ComingSoon.jsx';
 import Clients from './pages/Clients.jsx';
 import Dashboard from './pages/Dashboard.jsx';
+import EventDetail from './pages/EventDetail.jsx';
 import Events from './pages/Events.jsx';
 import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
@@ -50,15 +51,7 @@ export default function App() {
           <Route path="/clients" element={privatePage(<Clients />)} />
           <Route path="/vendors" element={privatePage(<Vendors />)} />
           <Route path="/events" element={privatePage(<Events />)} />
-          <Route
-            path="/events/:id"
-            element={privatePage(
-              <ComingSoon
-                title="Event details"
-                description="One event in full: tasks, assigned vendors, budget and the actions it raises."
-              />
-            )}
-          />
+          <Route path="/events/:id" element={privatePage(<EventDetail />)} />
           <Route
             path="/settings"
             element={privatePage(

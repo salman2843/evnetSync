@@ -101,7 +101,7 @@ Rules:
 | Method | Route | Body / query |
 | --- | --- | --- |
 | `GET` | `/events?status=&clientId=&search=&scope=&page=&limit=` | `search` covers the event title and the client name; `scope` is `upcoming`, `past` or `all` (default). Upcoming reads soonest first, past and all read newest first. Each event includes `taskSummary { total, completed }` |
-| `POST` | `/events` | `{ clientId, title, eventTypeId, startAt, subEventTypeId?, surpriseFor?, status?, venue?, budget?, notes?, generateTasks? }` |
+| `POST` | `/events` | `{ clientId, title, eventTypeId, customEventType?, startAt, subEventTypeId?, surpriseFor?, status?, venue?, budget?, notes?, generateTasks? }` |
 | `GET` | `/events/:id` | Returns `{ event, tasks }` |
 | `PUT` | `/events/:id` | Any editable field |
 | `DELETE` | `/events/:id` | Cascades tasks, vendor assignments, and actions |
@@ -112,15 +112,16 @@ Rules:
 | `DELETE` | `/events/:id/tasks/:taskId` | — |
 
 Rules:
-- `startAt` is always required; there is no lead-without-date flow.
-- `eventTypeId` comes from `GET /meta/event-types`.
-- `subEventTypeId` is only valid for `eventTypeId: "festival"`.
-- `budget` is `{ amount, spent, currency }`; a partial budget update merges with stored values.
+- `startAt` is required and must be today or later. An event that already happened keeps its date on update (a planner may only be fixing the venue), but it cannot be moved to a different past date.
+- `eventTypeId` comes from `GET /meta/event-types`. The catalog has four groups; the last one is `other`.
+- `customEventType` is required when `eventTypeId` is `other` (80 characters max) and is cleared when the event moves to another type.
+- `subEventTypeId` is only valid for a type that lists `subtypes` in the catalog (wedding functions such as mehndi, festivals such as Diwali).
+- `budget` is `{ amount, spent, currency }`; a partial budget update merges with stored values. The client app bills in `INR` only, though the API still accepts the other configured codes.
 - `venue` is optional: `{ name, address }`, both strings. A virtual or borrowed space needs no venue.
 - `generateTasks` defaults to `true` on create: the server adds a suggested checklist for the event type and returns it as `tasks`. Send `false` to start empty; editing an event never adds tasks again.
 - Statuses: `inquiry`, `planning`, `confirmed`, `completed`, `cancelled`.
 - Task statuses: `open`, `completed`; priorities: `low`, `normal`, `high`.
-- Duplicate copies the event and tasks, starts as `inquiry`, resets `budget.spent` to `0`, and shifts task due dates by the event-date change. Assignments and actions are not copied.
+- Duplicate copies the event (including `venue` and a custom `other` name) and tasks, starts as `inquiry`, resets `budget.spent` to `0`, and shifts task due dates by the event-date change. Assignments and actions are not copied.
 
 ## Event vendors
 

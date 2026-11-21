@@ -62,6 +62,7 @@ describe('extras: duplicate, exports, search', () => {
       eventTypeId: 'wedding',
       status: 'confirmed',
       startAt: daysFromNow(10),
+      venue: { name: 'Beach Resort', address: 'Candolim, Goa' },
       budget: { amount: 50000, spent: 20000, currency: 'INR' },
       notes: 'Beach side venue'
     });
@@ -101,6 +102,8 @@ describe('extras: duplicate, exports, search', () => {
       assert.equal(res.body.data.event.budget.amount, 50000);
       assert.equal(res.body.data.event.budget.spent, 0);
       assert.equal(res.body.data.event.clientId.name, 'Ravi Kumar');
+      assert.equal(res.body.data.event.venue.name, 'Beach Resort');
+      assert.equal(res.body.data.event.venue.address, 'Candolim, Goa');
       assert.equal(res.body.data.copiedTasks, 1);
     });
 

@@ -40,11 +40,16 @@ export async function duplicateEventForUser(userId, eventId, body = {}) {
     clientId,
     title,
     eventTypeId: original.eventTypeId,
+    customEventType: original.customEventType || '',
     subEventTypeId: original.subEventTypeId,
     surpriseFor: original.surpriseFor,
     // A copy is a fresh lead, not a confirmed booking.
     status: 'inquiry',
     startAt,
+    venue: {
+      name: original.venue?.name || '',
+      address: original.venue?.address || ''
+    },
     budget: {
       amount: original.budget?.amount ?? 0,
       spent: 0,
