@@ -7,3 +7,5 @@ dist/
 .codex
 /graphify-out
 /docs/
+
+.vite
