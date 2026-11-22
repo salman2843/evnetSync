@@ -4,10 +4,9 @@ The planner-facing React app. This folder is being rebuilt from scratch on the
 `frontend-v2` branch. The old client is preserved in git history.
 
 **Current state:** login, registration, the dashboard, the clients and vendors card
-screens, and the events calendar with its create/edit form and detail overview are
-built. The detail screen's Tasks, Vendors and Actions tabs are placeholders for the
-next part. `/actions` and `/settings` render a holding screen. Unknown routes
-redirect home.
+screens, and the events calendar with its create/edit form and full detail screen are
+built. The detail screen has working Tasks, Vendors and Actions tabs. `/actions` and
+`/settings` render a holding screen. Unknown routes redirect home.
 
 ## Stack
 
@@ -113,7 +112,9 @@ client/src/
                   VendorsEmpty
     events/       EventSpotlight, EventsTimeline, EventRow, EventsToolbar,
                   EventsSkeleton, EventsEmpty, EventForm, EventOverview,
-                  EventDetailTabs, EventDetailSkeleton, BudgetUpdateDialog
+                  EventDetailTabs, EventDetailSkeleton, BudgetUpdateDialog,
+                  EventTasksPanel, EventTaskForm, EventVendorsPanel,
+                  EventVendorForm, EventActionsPanel
     dashboard/    StatCard, NextEvents, ActionFeed, BudgetPanel, PipelinePanel,
                   DashboardSkeleton, EmptyWorkspace
     layout/       AppShell (sidebar, mobile header and tab bar)
@@ -236,12 +237,23 @@ back button keeps the section; on a phone the bar sticks under the app header.
   total, with quick +₹5,000 / +₹10,000 / +₹25,000 chips or a custom amount.
   Going over budget is allowed but warns before saving and again in the toast;
   the overview then shows the overrun in red instead of "left".
+- **Tasks** — the full checklist. Add, edit, tick off, reopen and delete steps;
+  open steps come first and finished ones stay visible, struck through. The
+  header shows progress and how many steps are overdue. **Add suggested** restores
+  the event type's checklist and skips titles already present, so it is safe to
+  click twice.
+- **Vendors** — assign a vendor from the vendor book, then track status
+  (considering / contacted / booked / declined), service, agreed amount and notes.
+  Status changes save straight from the row; the drawer edits the rest. Removing
+  an assignment keeps the vendor in the book.
+- **Actions** — the event-scoped slice of the Action Center. Open suggestions show
+  priority and due state (overdue wins over "due today"), can be completed and
+  reopened, and completed ones hide behind a toggle. **Check suggestions** runs the
+  shared engine and then reloads only this event's actions.
 - **Edit** reuses `EventForm` in the Drawer. **Duplicate** copies the event, its
   venue and task list; status resets to inquiry, spent resets to zero and task
   due dates shift with the new date. **Delete** uses `ConfirmDialog` and returns
   to the calendar.
-- **Tasks / Vendors / Actions** are placeholders until the next part. The task
-  tab already reports how many steps are attached.
 - A missing event (404) and a failed request get different messages, and both
   offer the way back.
 
@@ -352,7 +364,7 @@ shown on the email input, not in the form banner.
 | `/clients` | Built | `GET /clients` (search, status, sort, page), `POST /clients`, `PUT /clients/:id`, `DELETE /clients/:id` |
 | `/vendors` | Built | `GET /vendors` (search, category, page), `POST /vendors`, `PUT /vendors/:id`, `DELETE /vendors/:id`, `GET /meta/vendor-categories` |
 | `/events` | Built | `GET /events` (search, status, scope), `POST /events`, `GET /clients`, `GET /meta/event-types` |
-| `/events/:id` | Built (overview) | `GET /events/:id`, `PUT /events/:id`, `DELETE /events/:id`, `POST /events/:id/duplicate` |
+| `/events/:id` | Built | `GET /events/:id`, `PUT /events/:id`, `DELETE /events/:id`, `POST /events/:id/duplicate`, task and assignment routes under `/events/:id`, `GET /actions?eventId=`, `PATCH /actions/:id`, `POST /actions/regenerate` |
 | `/settings` | Holding screen | `GET /profile` |
 
 Full endpoint list: `server/API.md`.

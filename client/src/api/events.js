@@ -42,3 +42,53 @@ export async function deleteEvent(id) {
   const { data } = await api.delete(`/events/${id}`);
   return data.data.event;
 }
+
+// ---- Tasks ----------------------------------------------------------------
+// POST /api/events/:id/tasks -> the new task
+export async function createTask(eventId, values) {
+  const { data } = await api.post(`/events/${eventId}/tasks`, values);
+  return data.data.task;
+}
+
+// PUT /api/events/:id/tasks/:taskId -> the updated task
+export async function updateTask(eventId, taskId, changes) {
+  const { data } = await api.put(`/events/${eventId}/tasks/${taskId}`, changes);
+  return data.data.task;
+}
+
+// DELETE /api/events/:id/tasks/:taskId -> the deleted task
+export async function deleteTask(eventId, taskId) {
+  const { data } = await api.delete(`/events/${eventId}/tasks/${taskId}`);
+  return data.data.task;
+}
+
+// POST /api/events/:id/tasks/suggested -> { tasks } (skips titles already there)
+export async function addSuggestedTasks(eventId) {
+  const { data } = await api.post(`/events/${eventId}/tasks/suggested`);
+  return { tasks: data.data.tasks, message: data.message };
+}
+
+// ---- Vendors assigned to one event ----------------------------------------
+// GET /api/events/:id/vendors -> [{ vendorId: {...}, status, agreedAmount, ... }]
+export async function listEventVendors(eventId, signal) {
+  const { data } = await api.get(`/events/${eventId}/vendors`, { signal });
+  return data.data.assignments;
+}
+
+// POST /api/events/:id/vendors -> the new assignment
+export async function assignVendor(eventId, values) {
+  const { data } = await api.post(`/events/${eventId}/vendors`, values);
+  return data.data.assignment;
+}
+
+// PUT /api/events/:id/vendors/:assignmentId -> the updated assignment
+export async function updateEventVendor(eventId, assignmentId, changes) {
+  const { data } = await api.put(`/events/${eventId}/vendors/${assignmentId}`, changes);
+  return data.data.assignment;
+}
+
+// DELETE /api/events/:id/vendors/:assignmentId -> the removed assignment
+export async function removeEventVendor(eventId, assignmentId) {
+  const { data } = await api.delete(`/events/${eventId}/vendors/${assignmentId}`);
+  return data.data.assignment;
+}

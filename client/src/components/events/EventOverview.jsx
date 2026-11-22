@@ -98,7 +98,7 @@ export default function EventOverview({ event, tasks, onOpenTasks, onUpdateBudge
             <button
               type="button"
               onClick={onUpdateBudget}
-              className="mt-2 inline-flex h-8 items-center text-[0.82rem] font-medium text-brand hover:text-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+              className="mt-2 flex w-fit h-8 items-center text-[0.82rem] font-medium text-brand hover:text-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
             >
               Update budget
             </button>

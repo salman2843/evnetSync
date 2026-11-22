@@ -52,12 +52,19 @@ export const ACTION_PRIORITY = {
   low: { label: 'Low', dot: 'bg-line-strong' }
 };
 
+// Task priorities share the action colours, so a red dot means the same thing
+// on the event checklist and in the Action Center.
+export const TASK_PRIORITY = ACTION_PRIORITY;
+export const TASK_PRIORITY_ORDER = ['high', 'normal', 'low'];
+
 export const ASSIGNMENT_STATUS = {
-  considering: 'Considering',
-  contacted: 'Contacted',
-  booked: 'Booked',
-  declined: 'Declined'
+  considering: { label: 'Considering', tone: 'neutral' },
+  contacted: { label: 'Contacted', tone: 'brand' },
+  booked: { label: 'Booked', tone: 'success' },
+  declined: { label: 'Declined', tone: 'danger' }
 };
+
+export const ASSIGNMENT_STATUS_ORDER = ['considering', 'contacted', 'booked', 'declined'];
 
 export const CLIENT_STATUS = {
   New: { label: 'New', tone: 'neutral' },

@@ -266,7 +266,7 @@ export const addSuggestedTasks = asyncHandler(async (req, res) => {
     : [];
 
   const message = tasks.length
-    ? `Added ${tasks.length} suggested tasks`
+    ? `Added ${tasks.length} suggested ${tasks.length === 1 ? 'task' : 'tasks'}`
     : 'The suggested checklist is already in place';
   return sendCreated(res, { tasks }, message);
 });

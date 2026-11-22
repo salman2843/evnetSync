@@ -10,6 +10,9 @@ import EventDetailSkeleton from '../components/events/EventDetailSkeleton.jsx';
 import EventDetailTabs from '../components/events/EventDetailTabs.jsx';
 import EventForm from '../components/events/EventForm.jsx';
 import EventOverview from '../components/events/EventOverview.jsx';
+import EventTasksPanel from '../components/events/EventTasksPanel.jsx';
+import EventVendorsPanel from '../components/events/EventVendorsPanel.jsx';
+import EventActionsPanel from '../components/events/EventActionsPanel.jsx';
 import BudgetUpdateDialog from '../components/events/BudgetUpdateDialog.jsx';
 import { deleteEvent, duplicateEvent } from '../api/events.js';
 import useEvent from '../hooks/useEvent.js';
@@ -20,21 +23,6 @@ import { eventStatus, eventTypeLabel } from '../lib/labels.js';
 import usePageTitle from '../lib/usePageTitle.js';
 
 const TAB_IDS = ['overview', 'tasks', 'vendors', 'actions'];
-
-const PLACEHOLDERS = {
-  tasks: {
-    title: 'Tasks',
-    copy: 'The full checklist — adding, editing and ticking off steps — is the next part of this build.'
-  },
-  vendors: {
-    title: 'Vendors',
-    copy: 'Assigning vendors and tracking their quotes is the next part. Your vendor book is already in place.'
-  },
-  actions: {
-    title: 'Actions',
-    copy: 'The action feed for this event arrives with the Action Center. Nothing to chase here yet.'
-  }
-};
 
 export default function EventDetail() {
   const { id } = useParams();
@@ -156,7 +144,6 @@ export default function EventDetail() {
   }
 
   const statusMeta = eventStatus(event.status);
-  const placeholder = PLACEHOLDERS[tab];
 
   return (
     <div className="space-y-5">
@@ -214,25 +201,17 @@ export default function EventDetail() {
           onOpenTasks={() => changeTab('tasks')}
           onUpdateBudget={() => setBudgetOpen(true)}
         />
+      ) : tab === 'tasks' ? (
+        <EventTasksPanel
+          event={event}
+          tasks={tasks}
+          onChanged={reload}
+          notify={notify}
+        />
+      ) : tab === 'vendors' ? (
+        <EventVendorsPanel event={event} notify={notify} />
       ) : (
-        <section
-          id={`event-panel-${tab}`}
-          role="tabpanel"
-          aria-labelledby={`event-tab-${tab}`}
-          className="rounded-card border border-line bg-surface p-6 shadow-card sm:p-7"
-        >
-          <h2 className="font-display text-[1.35rem] leading-tight text-ink">{placeholder.title}</h2>
-          <p className="mt-2 max-w-[52ch] text-[0.9rem] leading-relaxed text-muted">
-            {placeholder.copy}
-          </p>
-          {tab === 'tasks' ? (
-            <p className="mt-4 text-[0.85rem] text-ink-soft">
-              {tasks.length
-                ? `${tasks.length} ${tasks.length === 1 ? 'task is' : 'tasks are'} already attached to this event.`
-                : 'No tasks are attached to this event yet.'}
-            </p>
-          ) : null}
-        </section>
+        <EventActionsPanel event={event} notify={notify} />
       )}
 
       <BudgetUpdateDialog
