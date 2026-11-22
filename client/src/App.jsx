@@ -3,6 +3,7 @@ import AppShell from './components/layout/AppShell.jsx';
 import FullScreenLoader from './components/FullScreenLoader.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
+import Actions from './pages/Actions.jsx';
 import ComingSoon from './pages/ComingSoon.jsx';
 import Clients from './pages/Clients.jsx';
 import Dashboard from './pages/Dashboard.jsx';
@@ -37,17 +38,7 @@ export default function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/dashboard" element={privatePage(<Dashboard />)} />
 
-          {/* Screens still to be built, kept reachable so navigation never
-              dead-ends and the shell can be reviewed. */}
-          <Route
-            path="/actions"
-            element={privatePage(
-              <ComingSoon
-                title="Action center"
-                description="The full list of things to do, with overdue, today and next-seven-days filters. The dashboard already shows the top five."
-              />
-            )}
-          />
+          <Route path="/actions" element={privatePage(<Actions />)} />
           <Route path="/clients" element={privatePage(<Clients />)} />
           <Route path="/vendors" element={privatePage(<Vendors />)} />
           <Route path="/events" element={privatePage(<Events />)} />

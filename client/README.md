@@ -4,9 +4,10 @@ The planner-facing React app. This folder is being rebuilt from scratch on the
 `frontend-v2` branch. The old client is preserved in git history.
 
 **Current state:** login, registration, the dashboard, the clients and vendors card
-screens, and the events calendar with its create/edit form and full detail screen are
-built. The detail screen has working Tasks, Vendors and Actions tabs. `/actions` and
-`/settings` render a holding screen. Unknown routes redirect home.
+screens, the events calendar with its create/edit form and full detail screen, and
+the workspace-wide Action Center are built. The event detail screen has working
+Tasks, Vendors and Actions tabs. `/settings` renders a holding screen. Unknown
+routes redirect home.
 
 ## Stack
 
@@ -225,6 +226,26 @@ same WhatsApp / Call / Email buttons.
 - **New event** opens the shared `Drawer` form. On save the planner lands on the
   new event, with the suggested checklist already attached.
 
+## Action center
+
+`/actions` is the workspace-wide list of next work, not a second dashboard. The
+server returns every action once (`GET /actions?status=all`); the page keeps the
+counts and filters in `lib/actionFilters.js`, so switching tabs is instant.
+
+- **Filters** — Open, Overdue, Today, Next 7 days and Done, each with its count.
+  Overdue means the due day is before today, so something due at 9:00 this morning
+  still reads as "Due today" in both the tab and the row badge. On a phone the
+  filters become one native select with the counts in its option labels.
+- **Rows** — checkbox, title, notes, priority, source (Suggested / Added by you),
+  due pill and a link to the event's Actions tab. Ticking completes the action;
+  ticking a finished row reopens it.
+- **Refresh suggestions** runs the shared action engine, then reloads the list.
+- **Add action** opens the shared `Drawer`: title, optional event, optional due
+  time with Today / Tomorrow / In a week chips, priority and notes. Only the title
+  is required.
+- Loading, empty, error and "last list still shown" states follow the other list
+  screens. Every filter has its own empty sentence.
+
 ## Event detail
 
 `/events/:id` opens on the overview with four sticky segmented tabs: Overview,
@@ -360,7 +381,7 @@ shown on the email input, not in the form banner.
 | `/login` | Built | `POST /auth/login` |
 | `/register` | Built | `POST /auth/register` |
 | `/dashboard` | Built | `GET /dashboard/summary`, `POST /actions/regenerate`, `PATCH /actions/:id` |
-| `/actions` | Holding screen | `GET /actions` |
+| `/actions` | Built | `GET /actions`, `POST /actions`, `PATCH /actions/:id`, `POST /actions/regenerate` |
 | `/clients` | Built | `GET /clients` (search, status, sort, page), `POST /clients`, `PUT /clients/:id`, `DELETE /clients/:id` |
 | `/vendors` | Built | `GET /vendors` (search, category, page), `POST /vendors`, `PUT /vendors/:id`, `DELETE /vendors/:id`, `GET /meta/vendor-categories` |
 | `/events` | Built | `GET /events` (search, status, scope), `POST /events`, `GET /clients`, `GET /meta/event-types` |

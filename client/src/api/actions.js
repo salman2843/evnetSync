@@ -12,6 +12,12 @@ export async function listActions({ status, eventId, due } = {}, signal) {
   return data.data.actions;
 }
 
+// POST /api/actions -> the new manual action, with its event populated
+export async function createAction(values) {
+  const { data } = await api.post('/actions', values);
+  return data.data.action;
+}
+
 // POST /api/actions/regenerate -> { created, updated, removed, total }
 export async function regenerateActions() {
   const { data } = await api.post('/actions/regenerate');
