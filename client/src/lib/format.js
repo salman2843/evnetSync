@@ -53,6 +53,12 @@ export function formatShortDate(value) {
   return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' }).format(new Date(value));
 }
 
+// "November 2026" for the member-since line in Settings.
+export function formatMonthYear(value) {
+  if (!value) return '';
+  return new Intl.DateTimeFormat('en-GB', { month: 'long', year: 'numeric' }).format(new Date(value));
+}
+
 // "12 Mar", with a year only when it is not the current one. Used for the next
 // event line on a client card.
 export function formatUpcomingDate(value, now = new Date()) {

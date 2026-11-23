@@ -6,8 +6,8 @@ The planner-facing React app. This folder is being rebuilt from scratch on the
 **Current state:** login, registration, the dashboard, the clients and vendors card
 screens, the events calendar with its create/edit form and full detail screen, and
 the workspace-wide Action Center are built. The event detail screen has working
-Tasks, Vendors and Actions tabs. `/settings` renders a holding screen. Unknown
-routes redirect home.
+Tasks, Vendors and Actions tabs. `/settings` edits the planner's name, business
+name, logo and password. Unknown routes redirect home.
 
 ## Stack
 
@@ -104,7 +104,8 @@ Fraunces (display) and Inter (UI) load from Google Fonts in `index.html` with
 ```text
 client/src/
   api/            axios.js (instance + token + 401), auth.js, clients.js,
-                  vendors.js, meta.js, dashboard.js, actions.js, events.js
+                  vendors.js, meta.js, dashboard.js, actions.js, events.js,
+                  profile.js
   components/
     auth/         AuthPanel (shared dark panel for login and register)
     clients/      ClientCard, ClientStatusPill, ClientForm, ClientsToolbar,
@@ -118,20 +119,22 @@ client/src/
                   EventVendorForm, EventActionsPanel
     dashboard/    StatCard, NextEvents, ActionFeed, BudgetPanel, PipelinePanel,
                   DashboardSkeleton, EmptyWorkspace
-    layout/       AppShell (sidebar, mobile header and tab bar)
+    settings/     ProfileForm, BusinessForm, PasswordForm
+    layout/       AppShell (sidebar, mobile header and tab bar), AccountMenu
     ui/           Button, TextField, PasswordField, PhoneField, Select, Textarea,
                   Badge, Panel, Skeleton, Drawer, ConfirmDialog, Toast,
                   FilterChips, ChoiceFilter, MultiSelectChips
-    BrandMark, FullScreenLoader, ProtectedRoute
-  context/        AuthContext.jsx (token, user, login, register, logout)
+    BrandMark, BusinessMark (logo / monogram), FullScreenLoader, ProtectedRoute
+  context/        AuthContext.jsx (token, user, login, register, logout,
+                  updateUser)
   hooks/          useDashboardSummary.js, useClients.js, useVendors.js,
                   useEvents.js, useEvent.js, useDebouncedValue.js, useToast.js
-  lib/            apiError.js, contact.js (wa.me/tel/mailto), format.js,
-                  events.js (countdown, month grouping, progress,
-                  datetime-local), labels.js (enums), validation.js
-                  (phone/email), usePageTitle.js
+  lib/            apiError.js, assets.js (API origin for uploads), contact.js
+                  (wa.me/tel/mailto), format.js, events.js (countdown, month
+                  grouping, progress, datetime-local), labels.js (enums),
+                  validation.js (phone/email), usePageTitle.js
   pages/          Login, Register, Dashboard, Clients, Vendors, Events,
-                  EventDetail, ComingSoon
+                  EventDetail, Settings
   App.jsx         routes and the guarded-page helper
   index.css       Tailwind layers, focus, selection, motion
   main.jsx        React root
@@ -142,8 +145,12 @@ client/src/
 `<AppShell>` is the signed-in frame. It renders:
 
 - a fixed 256px sidebar at `lg` and up: brand, five primary links, Settings,
-  then the planner's initials, name, business name and sign out;
-- a sticky top bar below `lg` with the brand, Settings and sign out;
+  then the business logo (or monogram), the planner's name, business name and
+  sign out;
+- a sticky top bar below `lg` with the brand and one account mark. The mark is
+  the business logo, else a business-name monogram, else the planner's initials;
+  tapping it opens an animated menu with Profile &amp; settings and Sign out,
+  so the phone header keeps a single control;
 - a fixed bottom tab bar below `lg` (Dashboard, Actions, Clients, Vendors,
   Events) with 56px targets and safe-area padding;
 - the page container: `max-w-[76rem]`, `pb-28` on mobile so the tab bar never
@@ -199,6 +206,29 @@ same WhatsApp / Call / Email buttons.
   carries `assignmentCount`, so the warning appears before the request is sent.
   When the vendor is in use the confirm button is disabled and only **Close**
   remains, so nobody can repeat the same failed delete.
+
+## Settings screen
+
+`/settings` is three panels: **Your details** (editable name, read-only email,
+member since), **Your business** (business name and logo) and **Password**.
+
+- The name is the only profile field with a save button; email is the sign-in
+  address and cannot change here. Time zone and currency are deliberately left
+  out while this build quotes INR only.
+- The logo preview is a tile, not a round avatar, so the uploaded file is shown
+  whole with `object-contain`. With no file, the business-name monogram (or the
+  planner's initials) fills the tile; the UI never says "logo not uploaded".
+- **Upload controls do not appear until a business name is saved.** The server
+  enforces the same rule with `409`. Picking a file uploads it immediately;
+  PNG, JPEG and WebP up to 2 MB. Replace and Remove sit beside the preview.
+- **Removing** uses `ConfirmDialog`. A saved logo blocks clearing the business
+  name, locally and on the server (`409`); remove the logo first, then save the
+  empty name.
+- Changing the password swaps the fresh token from `PUT /profile/password` into
+  the auth context, so this session stays signed in while older ones drop.
+- `BusinessMark` (`components/BusinessMark.jsx`) is shared by the sidebar and
+  the phone account menu. Reuse it for invoices or exports instead of building
+  another monogram.
 
 ## Events screen
 
@@ -386,7 +416,7 @@ shown on the email input, not in the form banner.
 | `/vendors` | Built | `GET /vendors` (search, category, page), `POST /vendors`, `PUT /vendors/:id`, `DELETE /vendors/:id`, `GET /meta/vendor-categories` |
 | `/events` | Built | `GET /events` (search, status, scope), `POST /events`, `GET /clients`, `GET /meta/event-types` |
 | `/events/:id` | Built | `GET /events/:id`, `PUT /events/:id`, `DELETE /events/:id`, `POST /events/:id/duplicate`, task and assignment routes under `/events/:id`, `GET /actions?eventId=`, `PATCH /actions/:id`, `POST /actions/regenerate` |
-| `/settings` | Holding screen | `GET /profile` |
+| `/settings` | Built | `PATCH /profile`, `PUT /profile/password`, `POST /profile/logo`, `DELETE /profile/logo` |
 
 Full endpoint list: `server/API.md`.
 

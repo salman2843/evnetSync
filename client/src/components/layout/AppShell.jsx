@@ -1,4 +1,5 @@
-import { NavLink, useLocation } from 'react-router-dom';import {
+import { NavLink, useLocation } from 'react-router-dom';
+import {
   CalendarDays,
   LayoutDashboard,
   ListChecks,
@@ -8,8 +9,9 @@ import { NavLink, useLocation } from 'react-router-dom';import {
   Users
 } from 'lucide-react';
 import BrandMark from '../BrandMark.jsx';
+import BusinessMark from '../BusinessMark.jsx';
+import AccountMenu from './AccountMenu.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
-import { initialsOf } from '../../lib/format.js';
 
 // One list drives the sidebar, the mobile tray and the page <title>.
 export const NAV_ITEMS = [
@@ -73,9 +75,7 @@ function Sidebar() {
         <NavItem to="/settings" label="Settings" icon={Settings} />
 
         <div className="mt-4 flex items-center gap-3 px-2">
-          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-brand-soft text-[0.75rem] font-semibold text-brand">
-            {initialsOf(user?.name)}
-          </span>
+          <BusinessMark user={user} className="h-9 w-9" textClassName="text-[0.75rem]" />
           <div className="min-w-0 flex-1">
             <p className="truncate text-[0.85rem] font-medium text-ink">{user?.name}</p>
             <p className="truncate text-[0.75rem] text-muted">
@@ -98,31 +98,13 @@ function Sidebar() {
 }
 
 function MobileHeader() {
-  const { logout } = useAuth();
-
   return (
     <header className="sticky top-0 z-20 flex items-center justify-between border-b border-line bg-canvas/95 px-5 py-3 backdrop-blur lg:hidden">
       <div className="flex items-center gap-2">
         <BrandMark className="h-6 w-6 text-brand" />
         <span className="font-display text-[1.05rem] tracking-[-0.01em] text-ink">EventSync</span>
       </div>
-      <div className="flex items-center gap-1">
-        <NavLink
-          to="/settings"
-          aria-label="Settings"
-          className="grid h-10 w-10 place-items-center rounded-lg text-muted transition-colors duration-150 hover:bg-wash hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
-        >
-          <Settings size={18} aria-hidden="true" />
-        </NavLink>
-        <button
-          type="button"
-          onClick={logout}
-          aria-label="Sign out"
-          className="grid h-10 w-10 place-items-center rounded-lg text-muted transition-colors duration-150 hover:bg-wash hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
-        >
-          <LogOut size={18} aria-hidden="true" />
-        </button>
-      </div>
+      <AccountMenu />
     </header>
   );
 }
