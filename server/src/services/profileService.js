@@ -18,6 +18,17 @@ export async function updatePlannerProfile(userId, body) {
   if (body.businessName !== undefined) {
     const businessName = typeof body.businessName === 'string' ? body.businessName.trim() : '';
     if (businessName.length > 120) throw httpError('Business name must be 120 characters or fewer');
+
+    // A logo belongs to a business, so the name cannot disappear while the
+    // uploaded file is still attached. The planner removes the logo first.
+    if (!businessName) {
+      const current = await User.findById(userId).select('businessLogo.path');
+      if (!current) throw httpError('Planner account not found', 404);
+      if (current.businessLogo?.path) {
+        throw httpError('Remove your business logo before clearing the business name', 409);
+      }
+    }
+
     updates.businessName = businessName;
   }
 
@@ -69,6 +80,12 @@ export async function changePlannerPassword(userId, body) {
 export async function setBusinessLogo(userId, file) {
   const user = await User.findById(userId);
   if (!user) throw httpError('Planner account not found', 404);
+
+  // Uploading is unlocked by the business name. A planner who registered
+  // without one gets the logo controls only after saving a name in Settings.
+  if (!user.businessName?.trim()) {
+    throw httpError('Add a business name before uploading a logo', 409);
+  }
 
   const oldPath = user.businessLogo?.path;
   user.businessLogo = {

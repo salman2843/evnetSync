@@ -62,7 +62,10 @@ Actions are returned as a priority-sorted feed rather than a paginated list; use
 | `POST` | `/profile/logo` | `multipart/form-data`, field `logo` | PNG, JPEG, or WebP; 2 MB max; magic bytes checked |
 | `DELETE` | `/profile/logo` | — | Removes the logo field and deletes the file |
 
-Replacing a logo deletes the previous file from disk. SVG is rejected.
+Replacing a logo deletes the previous file from disk. SVG is rejected. A logo can
+only be uploaded after the planner has saved a business name (`409` otherwise),
+and the business name cannot be cleared while a logo exists (`409`; remove the
+logo first).
 
 ## Clients
 

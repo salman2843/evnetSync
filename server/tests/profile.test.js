@@ -52,6 +52,61 @@ describe('profile and media', () => {
     assert.equal(me.body.data.user.businessName, 'Asha Events Co');
   });
 
+  test('requires a business name before a logo can be uploaded', async () => {
+    const withoutBusiness = await createPlanner({ businessName: '' });
+
+    const res = await request(app)
+      .post('/api/profile/logo')
+      .set(auth(withoutBusiness.token))
+      .attach('logo', PNG, { filename: 'logo.png', contentType: 'image/png' });
+
+    assert.equal(res.status, 409);
+    assert.match(res.body.message, /business name/i);
+
+    const me = await request(app).get('/api/auth/me').set(auth(withoutBusiness.token));
+    assert.equal(me.body.data.user.businessName, '');
+    assert.equal(me.body.data.user.businessLogo, null);
+  });
+
+  test('rejects clearing the business name while a logo exists', async () => {
+    const uploaded = await request(app)
+      .post('/api/profile/logo')
+      .set(auth(token))
+      .attach('logo', PNG, { filename: 'logo.png', contentType: 'image/png' });
+    const logoUrl = uploaded.body.data.user.businessLogo.url;
+
+    const res = await request(app)
+      .patch('/api/profile')
+      .set(auth(token))
+      .send({ businessName: '' });
+
+    assert.equal(res.status, 409);
+    assert.match(res.body.message, /remove your business logo/i);
+
+    const me = await request(app).get('/api/auth/me').set(auth(token));
+    assert.equal(me.body.data.user.businessName, 'Test Events Co');
+    assert.equal(me.body.data.user.businessLogo.url, logoUrl);
+  });
+
+  test('allows clearing the business name after the logo is removed', async () => {
+    await request(app)
+      .post('/api/profile/logo')
+      .set(auth(token))
+      .attach('logo', PNG, { filename: 'logo.png', contentType: 'image/png' });
+
+    const removed = await request(app).delete('/api/profile/logo').set(auth(token));
+    assert.equal(removed.status, 200);
+
+    const res = await request(app)
+      .patch('/api/profile')
+      .set(auth(token))
+      .send({ businessName: '' });
+
+    assert.equal(res.status, 200);
+    assert.equal(res.body.data.user.businessName, '');
+    assert.equal(res.body.data.user.businessLogo, null);
+  });
+
   test('rejects an invalid time zone', async () => {
     const res = await request(app)
       .patch('/api/profile')
